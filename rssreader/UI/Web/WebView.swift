@@ -8,6 +8,44 @@ import AppKit
 import UIKit
 #endif
 
+private enum EmbeddedWebNavigationPolicy {
+		private static let authenticationTokens: Set<String> = [
+				"account",
+				"accounts",
+				"auth",
+				"login",
+				"oauth",
+				"session",
+				"signin",
+				"sso"
+		]
+
+		static func shouldOpenExternally(_ navigationAction: WKNavigationAction) -> Bool {
+				guard navigationAction.navigationType == .linkActivated,
+							let url = navigationAction.request.url else {
+						return false
+				}
+
+				return !shouldStayEmbedded(url)
+		}
+
+		private static func shouldStayEmbedded(_ url: URL) -> Bool {
+				let candidateComponents = [
+						url.host?.lowercased() ?? "",
+						url.path.lowercased(),
+						url.query?.lowercased() ?? ""
+				]
+
+				return candidateComponents.contains(where: containsAuthenticationToken)
+		}
+
+		private static func containsAuthenticationToken(_ text: String) -> Bool {
+				let tokens = text.components(separatedBy: CharacterSet.alphanumerics.inverted)
+						.filter { !$0.isEmpty }
+				return !authenticationTokens.isDisjoint(with: tokens)
+		}
+}
+
 /// Wraps WKWebView for use in SwiftUI.
 /// Supports loading either a remote URL or a local HTML string.
 #if os(macOS)
@@ -55,7 +93,7 @@ struct WebView: NSViewRepresentable {
 										 decidePolicyFor navigationAction: WKNavigationAction,
 										 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
 						// Open link clicks in the default browser; allow the initial page load
-						if navigationAction.navigationType == .linkActivated,
+						if EmbeddedWebNavigationPolicy.shouldOpenExternally(navigationAction),
 							 let url = navigationAction.request.url {
 								NSWorkspace.shared.open(url)
 								decisionHandler(.cancel)
@@ -107,7 +145,7 @@ struct WebView: UIViewRepresentable {
 				func webView(_ webView: WKWebView,
 										 decidePolicyFor navigationAction: WKNavigationAction,
 										 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-						if navigationAction.navigationType == .linkActivated,
+						if EmbeddedWebNavigationPolicy.shouldOpenExternally(navigationAction),
 							 let url = navigationAction.request.url {
 								UIApplication.shared.open(url)
 								decisionHandler(.cancel)
@@ -160,7 +198,7 @@ struct ReaderWebView: NSViewRepresentable {
 																				 decidePolicyFor navigationAction: WKNavigationAction,
 																				 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
 												// Open link clicks in the default browser; allow the initial page load
-												if navigationAction.navigationType == .linkActivated,
+												if EmbeddedWebNavigationPolicy.shouldOpenExternally(navigationAction),
 													 let url = navigationAction.request.url {
 														NSWorkspace.shared.open(url)
 														decisionHandler(.cancel)
@@ -371,7 +409,7 @@ struct ReaderWebView: UIViewRepresentable {
 								func webView(_ webView: WKWebView,
 																				 decidePolicyFor navigationAction: WKNavigationAction,
 																				 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-												if navigationAction.navigationType == .linkActivated,
+												if EmbeddedWebNavigationPolicy.shouldOpenExternally(navigationAction),
 													 let url = navigationAction.request.url {
 														UIApplication.shared.open(url)
 														decisionHandler(.cancel)

@@ -18,22 +18,13 @@ struct ContentToolbarView: ToolbarContent {
         }
 
         ToolbarItemGroup(placement: .primaryAction) {
-            Button(action: selectPrevious) {
-                Label("Previous Item", systemImage: "chevron.up")
-            }
-            .labelStyle(.iconOnly)
-            .help("Previous item")
-            .disabled(!canGoPrevious)
-					
+					PreviousItemButton()
+						.labelStyle(.iconOnly)
+						.help("Previous item")
 					NextItemButton()
 						.labelStyle(.iconOnly)
 						.help("Next item")
-            Button(action: selectNext) {
-                Label("Next Item", systemImage: "chevron.down")
-            }
-            .labelStyle(.iconOnly)
-            .help("Next item")
-            .disabled(!canGoNext)
+            
 
             Button(action: showSettings) {
                 Label("Settings", systemImage: "gearshape")

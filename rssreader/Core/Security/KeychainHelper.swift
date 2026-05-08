@@ -10,16 +10,18 @@ public struct KeychainHelper {
             throw KeychainError.encodingFailed
         }
 
-        let query: [String: Any] = [
+        // Remove any existing items (both synchronizable and local) before saving.
+        let deleteQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
             kSecAttrAccount as String: key,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
+        SecItemDelete(deleteQuery as CFDictionary)
 
-        SecItemDelete(query as CFDictionary)
-
-        let attributes: [String: Any] = [
+        // Prefer iCloud-synced keychain; fall back to local-only when unavailable
+        // (e.g. macOS without iCloud Keychain entitlement or iCloud disabled).
+        let syncAttributes: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
             kSecAttrAccount as String: key,
@@ -28,9 +30,23 @@ public struct KeychainHelper {
             kSecAttrSynchronizable as String: true,
         ]
 
-        let status = SecItemAdd(attributes as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw KeychainError.saveFailed(status)
+        let syncStatus = SecItemAdd(syncAttributes as CFDictionary, nil)
+        if syncStatus == errSecSuccess {
+            return
+        }
+
+        // iCloud Keychain unavailable — save as a local (non-synchronizable) item.
+        let localAttributes: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+        ]
+
+        let localStatus = SecItemAdd(localAttributes as CFDictionary, nil)
+        guard localStatus == errSecSuccess else {
+            throw KeychainError.saveFailed(localStatus)
         }
     }
 

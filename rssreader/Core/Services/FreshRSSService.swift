@@ -262,7 +262,10 @@ final class FreshRSSService: ObservableObject {
         let defaults = UserDefaults.standard
         serverURL = defaults.string(forKey: StorageKeys.serverURL) ?? ""
         username = defaults.string(forKey: StorageKeys.username) ?? ""
-        password = (try? KeychainHelper.retrieve(key: StorageKeys.password, allowUserInteraction: false)) ?? ""
+        // On macOS, non-interactive keychain reads can fail depending on the
+        // item's access control; allow normal retrieval so saved passwords load
+        // reliably after relaunch.
+        password = (try? KeychainHelper.retrieve(key: StorageKeys.password, allowUserInteraction: true)) ?? ""
         preferExternalBrowser = defaults.bool(forKey: StorageKeys.preferExternalBrowser)
         loadArticleImages = defaults.object(forKey: StorageKeys.loadArticleImages) as? Bool ?? true
         let storedThumbnailSize = defaults.integer(forKey: StorageKeys.articleThumbnailSize)

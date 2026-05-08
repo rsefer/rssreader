@@ -85,7 +85,7 @@ jobs:
             -project rssreader.xcodeproj \
             -scheme rssreader \
             -configuration Release \
-            -destination 'generic/platform=macOS' \
+            -destination 'platform=macOS,arch=x86_64' \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \

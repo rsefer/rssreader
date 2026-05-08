@@ -8,6 +8,10 @@ final class ContentLogic: ObservableObject {
 
     private var autoSyncTask: Task<Void, Never>?
 
+    init(initialSelectedItemIDs: Set<String> = []) {
+        selectedItemIDs = initialSelectedItemIDs
+    }
+
     func openSettings() {
         showSettings = true
     }

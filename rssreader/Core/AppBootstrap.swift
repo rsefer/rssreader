@@ -9,4 +9,17 @@ enum AppBootstrap {
     static func makeService() -> FreshRSSService {
         FreshRSSService()
     }
+
+    static func makePreviewService(itemCount: Int = 10) -> FreshRSSService {
+        let service = FreshRSSService()
+
+        service.subscriptions = PreviewSampleData.subscriptions
+        service.items = PreviewSampleData.items(count: itemCount)
+        service.sidebarMode = .new
+        service.isAuthenticated = true
+        service.errorMessage = nil
+        service.selectedSubscriptionID = nil
+
+        return service
+    }
 }

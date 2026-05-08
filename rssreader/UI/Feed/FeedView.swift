@@ -202,8 +202,17 @@ struct FeedView: View {
 }
 
 private struct FeedViewPreviewContainer: View {
-    @State private var selectedItemIDs: Set<String> = []
-    @StateObject private var service = FreshRSSService()
+    @State private var selectedItemIDs: Set<String>
+	@StateObject private var service = AppBootstrap.makePreviewService(itemCount: 10)
+
+	init(preselectItem: Bool = false) {
+		if preselectItem,
+			 let firstID = PreviewSampleData.firstItemID(itemCount: 10) {
+			_selectedItemIDs = State(initialValue: [firstID])
+		} else {
+			_selectedItemIDs = State(initialValue: [])
+		}
+	}
 
     var body: some View {
 			NavigationStack {
@@ -218,5 +227,8 @@ private struct FeedViewPreviewContainer: View {
 
 #Preview("FeedView") {
 	FeedViewPreviewContainer()
-		.previewDevice("iPhone 17 Pro")
+}
+
+#Preview("FeedView - Item Selected") {
+	FeedViewPreviewContainer(preselectItem: true)
 }

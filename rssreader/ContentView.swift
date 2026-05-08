@@ -13,7 +13,11 @@ struct ContentView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject var service: FreshRSSService
-    @StateObject private var logic = ContentLogic()
+	@StateObject private var logic: ContentLogic
+
+	init(initialSelectedItemIDs: Set<String> = []) {
+		_logic = StateObject(wrappedValue: ContentLogic(initialSelectedItemIDs: initialSelectedItemIDs))
+	}
 
 	private var isDetailPresented: Binding<Bool> {
 					Binding(
@@ -173,14 +177,28 @@ struct ContentView: View {
 
 private struct ContentViewPreviewContainer: View {
 
-	@StateObject private var service = AppBootstrap.makeService()
+	@StateObject private var service = AppBootstrap.makePreviewService(itemCount: 10)
+	private let initialSelectedItemIDs: Set<String>
+
+	init(preselectDetail: Bool = false) {
+		if preselectDetail,
+			 let id = PreviewSampleData.firstItemID(itemCount: 10) {
+			initialSelectedItemIDs = [id]
+		} else {
+			initialSelectedItemIDs = []
+		}
+	}
 
 		var body: some View {
-			ContentView()
+			ContentView(initialSelectedItemIDs: initialSelectedItemIDs)
 					.environmentObject(service)
 		}
 }
 
 #Preview("ContentView") {
 	ContentViewPreviewContainer()
+}
+
+#Preview("ContentView - Detail Selected") {
+	ContentViewPreviewContainer(preselectDetail: true)
 }

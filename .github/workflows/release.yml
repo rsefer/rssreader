@@ -77,8 +77,11 @@ jobs:
 
           VERSION="${{ steps.version.outputs.version }}"
           DERIVED_DATA_PATH="$RUNNER_TEMP/DerivedData"
+          XCODEBUILD_LOG="$RUNNER_TEMP/xcodebuild.log"
 
-          xcodebuild \
+          rm -rf "$DERIVED_DATA_PATH"
+
+          if ! xcodebuild \
             -project rssreader.xcodeproj \
             -scheme rssreader \
             -configuration Release \
@@ -86,9 +89,13 @@ jobs:
             -derivedDataPath "$DERIVED_DATA_PATH" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
-            build
+            build 2>&1 | tee "$XCODEBUILD_LOG"; then
+            echo "xcodebuild failed. Last 200 log lines:"
+            tail -n 200 "$XCODEBUILD_LOG" || true
+            exit 1
+          fi
 
-          APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products/Release" -maxdepth 1 -type d -name '*.app' | head -n1)
+          APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products" -type d -name '*.app' | head -n1)
           if [[ -z "$APP_PATH" || ! -d "$APP_PATH" ]]; then
             echo "Could not find .app bundle in build output."
             find "$DERIVED_DATA_PATH/Build/Products" -maxdepth 3 -type d -name '*.app' || true
@@ -100,15 +107,29 @@ jobs:
           ZIP_ASSET_PATH="$RUNNER_TEMP/$ZIP_ASSET_NAME"
           DMG_ASSET_NAME="${APP_NAME%.app}-${VERSION}-macos.dmg"
           DMG_ASSET_PATH="$RUNNER_TEMP/$DMG_ASSET_NAME"
+          DMG_STAGE_DIR="$RUNNER_TEMP/dmg-stage"
 
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_ASSET_PATH"
-          hdiutil create -volname "${APP_NAME%.app}" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_ASSET_PATH"
+
+          rm -rf "$DMG_STAGE_DIR"
+          mkdir -p "$DMG_STAGE_DIR"
+          ditto "$APP_PATH" "$DMG_STAGE_DIR/$APP_NAME"
+
+          hdiutil create -volname "${APP_NAME%.app}" -srcfolder "$DMG_STAGE_DIR" -ov -format UDZO "$DMG_ASSET_PATH"
 
           echo "app_path=${APP_PATH}" >> "$GITHUB_OUTPUT"
           echo "zip_asset_path=${ZIP_ASSET_PATH}" >> "$GITHUB_OUTPUT"
           echo "zip_asset_name=${ZIP_ASSET_NAME}" >> "$GITHUB_OUTPUT"
           echo "dmg_asset_path=${DMG_ASSET_PATH}" >> "$GITHUB_OUTPUT"
           echo "dmg_asset_name=${DMG_ASSET_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload xcodebuild log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log-${{ steps.version.outputs.version }}
+          path: ${{ runner.temp }}/xcodebuild.log
+          if-no-files-found: ignore
 
       - name: Generate release notes
         shell: bash

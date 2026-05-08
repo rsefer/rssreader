@@ -23,15 +23,13 @@ struct FeedView: View {
 	@ViewBuilder
 	var feedSubscriptionMenuDisplay: some View {
 		if !service.subscriptions.isEmpty {
-				FeedSubscriptionMenu(
-						subscriptions: service.subscriptions,
-						selectedSubscriptionID: service.selectedSubscriptionID,
-						selectedTitle: selectedSubscription?.title ?? "All Feeds",
-						onSelectAll: { service.selectedSubscriptionID = nil },
-						onSelect: { service.selectedSubscriptionID = $0 }
-				)
-		} else {
-				EmptyView()
+			FeedSubscriptionMenu(
+					subscriptions: service.subscriptions,
+					selectedSubscriptionID: service.selectedSubscriptionID,
+					selectedTitle: selectedSubscription?.title ?? "All Feeds",
+					onSelectAll: { service.selectedSubscriptionID = nil },
+					onSelect: { service.selectedSubscriptionID = $0 }
+			)
 		}
 	}
 
@@ -73,86 +71,84 @@ struct FeedView: View {
 
 
     var body: some View {
-			#if os(iOS)
-			Group {
-				feedMainListDisplay
-			}
-			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-			.safeAreaInset(edge: .top, spacing: 0) {
-				VStack(spacing: 0) {
-					FeedModePicker(sidebarMode: $service.sidebarMode)
-					feedSubscriptionMenuDisplay
-					Divider()
-				}
-				.background(Color(.systemBackground))
-			}
-			.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search articles")
-			.onChange(of: service.sidebarMode, initial: false) { _, _ in
-					Task { @MainActor in
-						selectedItemIDs.removeAll()
-						await service.syncCurrentMode()
-					}
-			}
-			.platformFeedStatusToolbar(errorMessage: service.errorMessage)
-			.toolbar {
-				ToolbarItemGroup(placement: .navigation) {
-					SyncButton()
-						.environmentObject(service)
-				}
-				ToolbarItemGroup(placement: .primaryAction) {
-					MarkAllAsReadButton()
-						.environmentObject(service)
-					OpenSettingsButton(openSettings: openSettings)
-				}
-			}
-			#elseif os(macOS)
-			VStack(spacing: 0) {
-					FeedModePicker(sidebarMode: $service.sidebarMode)
-					feedSubscriptionMenuDisplay
+        platformContent
+            .onChange(of: service.sidebarMode, initial: false) { _, _ in
+                Task { @MainActor in
+                    selectedItemIDs.removeAll()
+                    await service.syncCurrentMode()
+                }
+            }
+            .platformFeedStatusToolbar(errorMessage: service.errorMessage)
+    }
 
-					HStack(spacing: 6) {
-						Image(systemName: "magnifyingglass")
-							.foregroundStyle(.secondary)
-							.font(.system(size: 12))
-						TextField("Search articles", text: $searchText)
-							.textFieldStyle(.plain)
-							.font(.system(size: 13))
-						if !searchText.isEmpty {
-							Button {
-								searchText = ""
-							} label: {
-								Image(systemName: "xmark.circle.fill")
-									.foregroundStyle(.secondary)
-							}
-							.buttonStyle(.plain)
-						}
-					}
-					.padding(.horizontal, 10)
-					.padding(.vertical, 5)
-					.background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7))
-					.padding(.horizontal, 8)
-					.padding(.bottom, 4)
+    @ViewBuilder
+    private var platformContent: some View {
+        #if os(iOS)
+        Group {
+            feedMainListDisplay
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                FeedModePicker(sidebarMode: $service.sidebarMode)
+                feedSubscriptionMenuDisplay
+                Divider()
+            }
+            .background(Color(.systemBackground))
+        }
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search articles")
+        .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                SyncButton()
+                    .environmentObject(service)
+            }
+            ToolbarItemGroup(placement: .primaryAction) {
+                MarkAllAsReadButton()
+                    .environmentObject(service)
+                OpenSettingsButton(openSettings: openSettings)
+            }
+        }
+        #elseif os(macOS)
+        VStack(spacing: 0) {
+            FeedModePicker(sidebarMode: $service.sidebarMode)
+            feedSubscriptionMenuDisplay
+            macSearchBar
+            feedMainListDisplay
+            FeedSidebarFooterView(
+                statusText: service.isAuthenticated ? countLabel : "Not connected",
+                openSettings: openSettings
+            )
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(.background)
+        .navigationTitle("")
+        #endif
+    }
 
-					Group {
-						feedMainListDisplay
-					}
-					FeedSidebarFooterView(
-							statusText: service.isAuthenticated ? countLabel : "Not connected",
-							openSettings: openSettings
-					)
-			}
-			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-			.background(.background)
-			.navigationTitle("")
-			.onChange(of: service.sidebarMode, initial: false) { _, _ in
-					Task { @MainActor in
-						selectedItemIDs.removeAll()
-						await service.syncCurrentMode()
-					}
-			}
-			.platformFeedStatusToolbar(errorMessage: service.errorMessage)
-			#endif
-
+    @ViewBuilder
+    private var macSearchBar: some View {
+        #if os(macOS)
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+            TextField("Search articles", text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+            if !searchText.isEmpty {
+                Button { searchText = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7))
+        .padding(.horizontal, 8)
+        .padding(.bottom, 4)
+        #endif
     }
 
     private var countLabel: String {
@@ -220,11 +216,19 @@ private struct FeedViewPreviewContainer: View {
 }
 
 #Preview("FeedView") {
+	#if os(macOS)
 	FeedViewPreviewContainer()
 		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
+	#else
+	FeedViewPreviewContainer()
+	#endif
 }
 
 #Preview("FeedView - Item Selected") {
+	#if os(macOS)
 	FeedViewPreviewContainer(preselectItem: true)
 		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
+	#else
+	FeedViewPreviewContainer(preselectItem: true)
+	#endif
 }

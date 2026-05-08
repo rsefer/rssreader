@@ -196,11 +196,19 @@ private struct ContentViewPreviewContainer: View {
 }
 
 #Preview("ContentView") {
+	#if os(macOS)
 	ContentViewPreviewContainer()
 		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
+	#else
+	ContentViewPreviewContainer()
+	#endif
 }
 
 #Preview("ContentView - Detail Selected") {
+	#if os(macOS)
 	ContentViewPreviewContainer(preselectDetail: true)
 		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
+	#else
+	ContentViewPreviewContainer(preselectDetail: true)
+	#endif
 }

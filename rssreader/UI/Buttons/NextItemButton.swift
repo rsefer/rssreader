@@ -1,12 +1,20 @@
 import SwiftUI
 
 struct NextItemButton: View {
-	@FocusedValue(\.itemNavigation) private var itemNavigation
+	@Environment(\.itemNavigation) private var itemNavigation
+
+	private var canNavigate: Bool {
+		itemNavigation?.canGoNext ?? true
+	}
 
 	var body: some View {
 		Button("Next Item", systemImage: "chevron.down") {
-				itemNavigation?.selectNext()
+			if let itemNavigation {
+				itemNavigation.selectNext()
+			} else {
+				NotificationCenter.default.post(name: .navigateToNextItem, object: nil)
+			}
 		}
-		.disabled(!(itemNavigation?.canGoNext ?? false))
+		.disabled(!canNavigate)
 	}
 }

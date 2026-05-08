@@ -1,0 +1,171 @@
+name: Release macOS app
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PREFIX="$(date -u +%Y.%m)"
+          MAX_BUILD=0
+
+          while IFS= read -r tag; do
+            build_part="${tag##*.}"
+            if [[ "$build_part" =~ ^[0-9]+$ ]]; then
+              build_number=$((10#$build_part))
+              if (( build_number > MAX_BUILD )); then
+                MAX_BUILD=$build_number
+              fi
+            fi
+          done < <(git tag --list "${PREFIX}.*")
+
+          NEXT_BUILD=$(printf "%03d" $((MAX_BUILD + 1)))
+          VERSION="${PREFIX}.${NEXT_BUILD}"
+
+          PREVIOUS_TAG=$(git tag --list '[0-9][0-9][0-9][0-9].[0-9][0-9].*' --sort=-v:refname | head -n1 || true)
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=${PREVIOUS_TAG}" >> "$GITHUB_OUTPUT"
+
+          echo "New version: ${VERSION}"
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            echo "Previous tag: ${PREVIOUS_TAG}"
+          fi
+
+      - name: Create and push tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+
+          if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
+            echo "Tag ${VERSION} already exists."
+          else
+            git tag "${VERSION}"
+            git push origin "${VERSION}"
+            echo "Created tag ${VERSION}"
+          fi
+
+      - name: Archive app
+        id: archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE_PATH="$RUNNER_TEMP/rssreader.xcarchive"
+
+          xcodebuild \
+            -project rssreader.xcodeproj \
+            -target rssreader \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+
+          APP_PATH=$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -type d -name '*.app' | head -n1)
+          if [[ -z "$APP_PATH" || ! -d "$APP_PATH" ]]; then
+            echo "Could not find .app bundle in archive output."
+            exit 1
+          fi
+
+          APP_NAME=$(basename "$APP_PATH")
+          ZIP_ASSET_NAME="${APP_NAME%.app}-${VERSION}-macos.zip"
+          ZIP_ASSET_PATH="$RUNNER_TEMP/$ZIP_ASSET_NAME"
+          DMG_ASSET_NAME="${APP_NAME%.app}-${VERSION}-macos.dmg"
+          DMG_ASSET_PATH="$RUNNER_TEMP/$DMG_ASSET_NAME"
+
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_ASSET_PATH"
+          hdiutil create -volname "${APP_NAME%.app}" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_ASSET_PATH"
+
+          echo "app_path=${APP_PATH}" >> "$GITHUB_OUTPUT"
+          echo "zip_asset_path=${ZIP_ASSET_PATH}" >> "$GITHUB_OUTPUT"
+          echo "zip_asset_name=${ZIP_ASSET_NAME}" >> "$GITHUB_OUTPUT"
+          echo "dmg_asset_path=${DMG_ASSET_PATH}" >> "$GITHUB_OUTPUT"
+          echo "dmg_asset_name=${DMG_ASSET_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          PREVIOUS_TAG="${{ steps.version.outputs.previous_tag }}"
+
+          if [[ -z "$PREVIOUS_TAG" ]]; then
+            {
+              echo "## Changes"
+              echo
+              echo "Initial release"
+              echo
+              echo "## Install on macOS (unsigned build)"
+              echo
+              echo "If macOS blocks opening the app, right-click the app and choose Open."
+              echo "If needed, open System Settings > Privacy & Security and allow the app to run."
+            } > release_notes.md
+          else
+            CHANGES=$(git log "${PREVIOUS_TAG}..HEAD" --pretty=format:'- %s (%h)' --no-merges --regexp-ignore-case --grep='^ci[:( ]' --invert-grep)
+            if [[ -z "$CHANGES" ]]; then
+              CHANGES='- Maintenance updates'
+            fi
+
+            {
+              echo "## Changes"
+              echo
+              echo "$CHANGES"
+              echo
+              echo "## Install on macOS (unsigned build)"
+              echo
+              echo "If macOS blocks opening the app, right-click the app and choose Open."
+              echo "If needed, open System Settings > Privacy & Security and allow the app to run."
+            } > release_notes.md
+          fi
+
+          echo "Release notes for ${VERSION}:"
+          cat release_notes.md
+
+      - name: Create or update GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP_ASSET_PATH="${{ steps.archive.outputs.zip_asset_path }}"
+          DMG_ASSET_PATH="${{ steps.archive.outputs.dmg_asset_path }}"
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release ${VERSION} already exists, uploading asset with clobber."
+            gh release upload "$VERSION" "$ZIP_ASSET_PATH" "$DMG_ASSET_PATH" --clobber
+          else
+            gh release create "$VERSION" "$ZIP_ASSET_PATH" "$DMG_ASSET_PATH" \
+              --title "$VERSION" \
+              --notes-file release_notes.md \
+              --latest
+          fi

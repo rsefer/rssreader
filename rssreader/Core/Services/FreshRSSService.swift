@@ -886,7 +886,7 @@ final class FreshRSSService: ObservableObject {
         let articleThumbnailURL = inlineTechmemeMetadata.thumbnailURL
             ?? bestThumbnailURL(for: gItem, articleURL: resolvedURL, html: html)
             ?? techmemeFallbackThumbnailURL(for: techmemeURL)
-        let publicationIconURL = publicationIconURL(for: publication, articleURL: resolvedURL, fallback: publicationIconURL(for: gItem, articleURL: resolvedURL))
+        let publicationIconURL = publicationIconURL(for: publication, articleURL: resolvedURL, fallback: techmemeFallbackThumbnailURL(for: techmemeURL) ?? publicationIconURL(for: gItem, articleURL: resolvedURL))
 
         return FeedItem(
             id: gItem.id,

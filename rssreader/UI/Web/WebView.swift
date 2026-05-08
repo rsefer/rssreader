@@ -9,41 +9,41 @@ import UIKit
 #endif
 
 private enum EmbeddedWebNavigationPolicy {
-		private static let authenticationTokens: Set<String> = [
-				"account",
-				"accounts",
-				"auth",
-				"login",
-				"oauth",
-				"session",
-				"signin",
-				"sso"
+	private static let authenticationTokens: Set<String> = [
+		"account",
+		"accounts",
+		"auth",
+		"login",
+		"oauth",
+		"session",
+		"signin",
+		"sso"
+	]
+
+	static func shouldOpenExternally(_ navigationAction: WKNavigationAction) -> Bool {
+		guard navigationAction.navigationType == .linkActivated,
+					let url = navigationAction.request.url else {
+			return false
+		}
+
+		return !shouldStayEmbedded(url)
+	}
+
+	private static func shouldStayEmbedded(_ url: URL) -> Bool {
+		let candidateComponents = [
+			url.host?.lowercased() ?? "",
+			url.path.lowercased(),
+			url.query?.lowercased() ?? ""
 		]
 
-		static func shouldOpenExternally(_ navigationAction: WKNavigationAction) -> Bool {
-				guard navigationAction.navigationType == .linkActivated,
-							let url = navigationAction.request.url else {
-						return false
-				}
+		return candidateComponents.contains(where: containsAuthenticationToken)
+	}
 
-				return !shouldStayEmbedded(url)
-		}
-
-		private static func shouldStayEmbedded(_ url: URL) -> Bool {
-				let candidateComponents = [
-						url.host?.lowercased() ?? "",
-						url.path.lowercased(),
-						url.query?.lowercased() ?? ""
-				]
-
-				return candidateComponents.contains(where: containsAuthenticationToken)
-		}
-
-		private static func containsAuthenticationToken(_ text: String) -> Bool {
-				let tokens = text.components(separatedBy: CharacterSet.alphanumerics.inverted)
-						.filter { !$0.isEmpty }
-				return !authenticationTokens.isDisjoint(with: tokens)
-		}
+	private static func containsAuthenticationToken(_ text: String) -> Bool {
+		let tokens = text.components(separatedBy: CharacterSet.alphanumerics.inverted)
+			.filter { !$0.isEmpty }
+		return !authenticationTokens.isDisjoint(with: tokens)
+	}
 }
 
 /// Wraps WKWebView for use in SwiftUI.

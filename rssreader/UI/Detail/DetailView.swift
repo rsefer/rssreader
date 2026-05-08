@@ -5,8 +5,14 @@ struct DetailView: View {
 		@EnvironmentObject private var service: FreshRSSService
 
 		let item: FeedItem
+		let openSettings: () -> Void
 		@State private var activeTab: ContentTab = .web
 		@State private var lastAutoOpenedItemID: String?
+
+		init(item: FeedItem, openSettings: @escaping () -> Void = {}) {
+				self.item = item
+				self.openSettings = openSettings
+		}
 
 		private var detailPrimaryThumbnailURL: URL? {
 				switch service.thumbnailDisplayMode {
@@ -58,16 +64,36 @@ struct DetailView: View {
 				.onAppear {
 						activeTab = item.url != nil ? .web : .content
 				}
+				.navigationTitle("")
 				.toolbar {
-					
-					ToolbarItem(placement: .primaryAction) {
-							modeChooser
+
+					ToolbarItemGroup(placement: .navigation) {
+						SyncButton()
+							.environmentObject(service)
+						MarkAllAsReadButton()
+							.environmentObject(service)
+						OpenSettingsButton(openSettings: openSettings)
 					}
-					
+
+					ToolbarItemGroup(placement: .primaryAction) {
+
+						ControlGroup {
+							DetailTabSwitcher(activeTab: $activeTab, hasWebURL: item.url != nil)
+						}.controlGroupStyle(.automatic)
+
+					}
+
+					ToolbarItemGroup(placement: .primaryAction) {
+						PreviousItemButton()
+							.labelStyle(.iconOnly)
+							.help("Previous item")
+						NextItemButton()
+							.labelStyle(.iconOnly)
+							.help("Next item")
+					}
+
 						ToolbarItemGroup(placement: .primaryAction) {
 								ControlGroup {
-										
-
 										if let url = item.url {
 											OpenInBrowserButton(url: url) { lastAutoOpenedItemID = item.id }
 												.keyboardShortcut("o", modifiers: [.command, .shift])
@@ -78,7 +104,7 @@ struct DetailView: View {
 											}
 											.help("Share this article")
 										}
-									
+
 									Button {
 											Task {
 													if service.isMarkedRead(item) {
@@ -94,49 +120,10 @@ struct DetailView: View {
 									.disabled(service.isLoading)
 								}
 								.controlGroupStyle(.automatic)
-								.fixedSize()
 						}
 
-						
-				}
-		}
 
-		@ViewBuilder
-		private var modeChooser: some View {
-				#if os(iOS)
-				HStack(spacing: 2) {
-						ForEach(ContentTab.allCases, id: \.self) { tab in
-								Button {
-										activeTab = tab
-								} label: {
-										Image(systemName: tab.icon)
-												.font(.system(size: 17, weight: .medium))
-												.frame(width: 38, height: 30)
-												.foregroundStyle(activeTab == tab ? .primary : .secondary)
-												.background {
-														if activeTab == tab {
-																RoundedRectangle(cornerRadius: 13, style: .continuous)
-																		.fill(.quaternary)
-														}
-												}
-								}
-								.buttonStyle(.plain)
-								.disabled(tab == .web && item.url == nil)
-								.accessibilityLabel(tab.rawValue)
-						}
 				}
-				.padding(4)
-				.background(.ultraThinMaterial, in: Capsule(style: .continuous))
-				#else
-				Picker("", selection: $activeTab) {
-						ForEach(ContentTab.allCases, id: \.self) { tab in
-								Label(tab.rawValue, systemImage: tab.icon).tag(tab)
-						}
-				}
-				.pickerStyle(.segmented)
-				.controlSize(.small)
-				.disabled(activeTab == .web && item.url == nil)
-				#endif
 		}
 
 		// MARK: - Header

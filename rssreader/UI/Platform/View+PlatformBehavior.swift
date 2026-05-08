@@ -29,31 +29,6 @@ extension View {
     }
 
     @ViewBuilder
-    func platformMainToolbar(
-        canGoPrevious: Bool,
-        canGoNext: Bool,
-        showSettings: @escaping () -> Void,
-        selectPrevious: @escaping () -> Void,
-        selectNext: @escaping () -> Void
-    ) -> some View {
-        #if os(macOS)
-        self
-            .navigationTitle("")
-            .toolbar {
-                ContentToolbarView(
-                    canGoPrevious: canGoPrevious,
-                    canGoNext: canGoNext,
-                    showSettings: showSettings,
-                    selectPrevious: selectPrevious,
-                    selectNext: selectNext
-                )
-            }
-        #else
-        self
-        #endif
-    }
-
-    @ViewBuilder
     func platformMainKeyboardHandlers(
         canGoPrevious: Bool,
         canGoNext: Bool,

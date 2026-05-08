@@ -94,13 +94,7 @@ struct ContentView: View {
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 			.background(.background)
-			.platformMainToolbar(
-					canGoPrevious: canGoPrevious,
-					canGoNext: canGoNext,
-					showSettings: { logic.openSettings() },
-					selectPrevious: selectPrevious,
-					selectNext: selectNext
-			)
+			.navigationTitle("")
 			.platformMainKeyboardHandlers(
 					canGoPrevious: canGoPrevious,
 					canGoNext: canGoNext,
@@ -134,7 +128,7 @@ struct ContentView: View {
 	@ViewBuilder
 	private var detailContent: some View {
 			if let item = selectedItem {
-					DetailView(item: item)
+					DetailView(item: item, openSettings: { logic.openSettings() })
 							.environmentObject(service)
 			} else {
 					EmptyDetailPlaceholderView(

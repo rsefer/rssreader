@@ -15,8 +15,10 @@ private enum EmbeddedWebNavigationPolicy {
 		"auth",
 		"login",
 		"oauth",
+		"register",
 		"session",
 		"signin",
+		"signup",
 		"sso"
 	]
 

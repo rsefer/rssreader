@@ -13,7 +13,7 @@ enum PreviewSampleData {
     ]
 
     static func items(count: Int = 10, subscriptions: [FeedSubscription] = subscriptions) -> [FeedItem] {
-        let normalizedCount = max(count, 1)
+        let normalizedCount = max(count, 0)
         let now = Date()
 
         return (0..<normalizedCount).map { index in

@@ -200,14 +200,12 @@ private struct ContentViewPreviewContainer: View {
 	private let initialSelectedItemIDs: Set<String>
 
 	init(preselectDetail: Bool = false, noUnreadItems: Bool = false) {
-		let previewService = AppBootstrap.makePreviewService(itemCount: 10)
-		if noUnreadItems {
-			previewService.items = []
-		}
+		let previewItemCount = noUnreadItems ? 0 : 10
+		let previewService = AppBootstrap.makePreviewService(itemCount: previewItemCount)
 		_service = StateObject(wrappedValue: previewService)
 
 		if preselectDetail,
-			 let id = PreviewSampleData.firstItemID(itemCount: 10) {
+			 let id = PreviewSampleData.firstItemID(itemCount: previewItemCount) {
 			initialSelectedItemIDs = [id]
 		} else {
 			initialSelectedItemIDs = []

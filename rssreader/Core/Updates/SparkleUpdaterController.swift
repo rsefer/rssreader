@@ -1,8 +1,10 @@
 #if os(macOS)
+import Combine
 import Sparkle
 
 @MainActor
 final class SparkleUpdaterController: ObservableObject {
+    let objectWillChange = ObservableObjectPublisher()
     private let updaterController: SPUStandardUpdaterController
 
     init(startingUpdater: Bool = true) {

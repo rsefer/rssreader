@@ -8,65 +8,6 @@ import AppKit
 import UIKit
 #endif
 
-private enum EmbeddedWebNavigationPolicy {
-	// Keep explicit auth/account route markers embedded so cross-domain sign-in flows
-	// can complete in the web view while ordinary external article links still open outside.
-	private static let authenticationTokens: Set<String> = [
-		"account",
-		"accounts",
-		"auth",
-		"login",
-		"oauth",
-		"register",
-		"session",
-		"signin",
-		"signup",
-		"sso"
-	]
-	private static let tokenSeparators = CharacterSet.alphanumerics.inverted
-
-	static func shouldOpenExternally(_ navigationAction: WKNavigationAction) -> Bool {
-		guard navigationAction.navigationType == .linkActivated,
-					let url = navigationAction.request.url else {
-			return false
-		}
-
-		return !shouldStayEmbedded(url)
-	}
-
-	private static func shouldStayEmbedded(_ url: URL) -> Bool {
-		if let host = url.host?.lowercased(),
-				containsAuthenticationToken(host) {
-			return true
-		}
-
-		let pathSegments = url.pathComponents.map { $0.lowercased() }.filter { $0 != "/" }
-		if pathSegments.contains(where: authenticationTokens.contains) {
-			return true
-		}
-
-		guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-					let queryItems = components.queryItems else {
-			return false
-		}
-
-		if queryItems.contains(where: { item in
-			let name = item.name.lowercased()
-			let value = item.value?.lowercased()
-			return authenticationTokens.contains(name) || (value.map { authenticationTokens.contains($0) } ?? false)
-		}) {
-			return true
-		}
-
-		return false
-	}
-
-	private static func containsAuthenticationToken(_ text: String) -> Bool {
-		let tokens = text.components(separatedBy: tokenSeparators).filter { !$0.isEmpty }
-		return !authenticationTokens.isDisjoint(with: tokens)
-	}
-}
-
 /// Wraps WKWebView for use in SwiftUI.
 /// Supports loading either a remote URL or a local HTML string.
 #if os(macOS)
@@ -114,8 +55,9 @@ struct WebView: NSViewRepresentable {
 										 decidePolicyFor navigationAction: WKNavigationAction,
 										 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
 						// Open link clicks in the default browser; allow the initial page load
-						if EmbeddedWebNavigationPolicy.shouldOpenExternally(navigationAction),
-							 let url = navigationAction.request.url {
+						if navigationAction.navigationType == .linkActivated,
+							 let url = navigationAction.request.url,
+							 !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) {
 								NSWorkspace.shared.open(url)
 								decisionHandler(.cancel)
 								return
@@ -166,8 +108,9 @@ struct WebView: UIViewRepresentable {
 				func webView(_ webView: WKWebView,
 										 decidePolicyFor navigationAction: WKNavigationAction,
 										 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-						if EmbeddedWebNavigationPolicy.shouldOpenExternally(navigationAction),
-							 let url = navigationAction.request.url {
+						if navigationAction.navigationType == .linkActivated,
+							 let url = navigationAction.request.url,
+							 !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) {
 								UIApplication.shared.open(url)
 								decisionHandler(.cancel)
 								return
@@ -219,8 +162,9 @@ struct ReaderWebView: NSViewRepresentable {
 																				 decidePolicyFor navigationAction: WKNavigationAction,
 																				 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
 												// Open link clicks in the default browser; allow the initial page load
-												if EmbeddedWebNavigationPolicy.shouldOpenExternally(navigationAction),
-													 let url = navigationAction.request.url {
+												if navigationAction.navigationType == .linkActivated,
+													 let url = navigationAction.request.url,
+													 !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) {
 														NSWorkspace.shared.open(url)
 														decisionHandler(.cancel)
 														return
@@ -430,8 +374,9 @@ struct ReaderWebView: UIViewRepresentable {
 								func webView(_ webView: WKWebView,
 																				 decidePolicyFor navigationAction: WKNavigationAction,
 																				 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-												if EmbeddedWebNavigationPolicy.shouldOpenExternally(navigationAction),
-													 let url = navigationAction.request.url {
+												if navigationAction.navigationType == .linkActivated,
+													 let url = navigationAction.request.url,
+													 !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) {
 														UIApplication.shared.open(url)
 														decisionHandler(.cancel)
 														return

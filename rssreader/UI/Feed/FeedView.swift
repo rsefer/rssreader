@@ -43,24 +43,31 @@ struct FeedView: View {
 						sync: { await service.syncCurrentMode() }
 				)
 		} else {
-				List(displayedItems, selection: $selectedItemIDs) { item in
-						FeedItemRow(
-								item: item,
-								isRead: service.isMarkedRead(item),
-								loadImages: service.loadArticleImages,
-								thumbnailSize: CGFloat(service.articleThumbnailSize),
-								thumbnailAspectRatio: service.articleThumbnailAspectRatio,
-								thumbnailDisplayMode: service.thumbnailDisplayMode
-						)
-								.tag(item.id)
-								.contextMenu {
-										FeedItemContextMenu(
+				List(selection: $selectedItemIDs) {
+						Section {
+								ForEach(displayedItems) { item in
+										FeedItemRow(
 												item: item,
-												contextItems: contextSelection(for: item),
-												onOpen: { selectedItemIDs = [item.id] },
-												copyLink: copyLink
+												isRead: service.isMarkedRead(item),
+												loadImages: service.loadArticleImages,
+												thumbnailSize: CGFloat(service.articleThumbnailSize),
+												thumbnailAspectRatio: service.articleThumbnailAspectRatio,
+												thumbnailDisplayMode: service.thumbnailDisplayMode
 										)
+										.tag(item.id)
+										.contextMenu {
+												FeedItemContextMenu(
+														item: item,
+														contextItems: contextSelection(for: item),
+														onOpen: { selectedItemIDs = [item.id] },
+														copyLink: copyLink
+												)
+										}
 								}
+						}
+						#if os(iOS)
+						.listSectionSeparator(.hidden, edges: .top)
+						#endif
 				}
 				.platformFeedListStyle()
 				.platformFeedListRefreshable {

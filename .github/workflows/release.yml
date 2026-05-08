@@ -115,7 +115,11 @@ jobs:
           mkdir -p "$DMG_STAGE_DIR"
           ditto "$APP_PATH" "$DMG_STAGE_DIR/$APP_NAME"
 
-          hdiutil create -volname "${APP_NAME%.app}" -srcfolder "$DMG_STAGE_DIR" -ov -format UDZO "$DMG_ASSET_PATH"
+          if ! hdiutil create -volname "${APP_NAME%.app}" -srcfolder "$DMG_STAGE_DIR" -ov -format UDZO "$DMG_ASSET_PATH"; then
+            echo "Warning: DMG creation failed. Continuing with ZIP artifact only."
+            DMG_ASSET_PATH=""
+            DMG_ASSET_NAME=""
+          fi
 
           echo "app_path=${APP_PATH}" >> "$GITHUB_OUTPUT"
           echo "zip_asset_path=${ZIP_ASSET_PATH}" >> "$GITHUB_OUTPUT"
@@ -124,7 +128,7 @@ jobs:
           echo "dmg_asset_name=${DMG_ASSET_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Upload xcodebuild log on failure
-        if: failure()
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
           name: xcodebuild-log-${{ steps.version.outputs.version }}
@@ -181,12 +185,17 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           ZIP_ASSET_PATH="${{ steps.archive.outputs.zip_asset_path }}"
           DMG_ASSET_PATH="${{ steps.archive.outputs.dmg_asset_path }}"
+          ASSET_ARGS=("$ZIP_ASSET_PATH")
+
+          if [[ -n "$DMG_ASSET_PATH" && -f "$DMG_ASSET_PATH" ]]; then
+            ASSET_ARGS+=("$DMG_ASSET_PATH")
+          fi
 
           if gh release view "$VERSION" >/dev/null 2>&1; then
             echo "Release ${VERSION} already exists, uploading asset with clobber."
-            gh release upload "$VERSION" "$ZIP_ASSET_PATH" "$DMG_ASSET_PATH" --clobber
+            gh release upload "$VERSION" "${ASSET_ARGS[@]}" --clobber
           else
-            gh release create "$VERSION" "$ZIP_ASSET_PATH" "$DMG_ASSET_PATH" \
+            gh release create "$VERSION" "${ASSET_ARGS[@]}" \
               --title "$VERSION" \
               --notes-file release_notes.md \
               --latest

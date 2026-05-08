@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 enum AppBootstrap {
     static func configure() {
         // Keep remote image caching lightweight: memory-only, no persistent disk cache.

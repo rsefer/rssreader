@@ -1,12 +1,20 @@
 import SwiftUI
 
 struct PreviousItemButton: View {
-	@FocusedValue(\.itemNavigation) private var itemNavigation
+	@Environment(\.itemNavigation) private var itemNavigation
+
+	private var canNavigate: Bool {
+		itemNavigation?.canGoPrevious ?? true
+	}
 
 	var body: some View {
 		Button("Previous Item", systemImage: "chevron.up") {
-				itemNavigation?.selectPrevious()
+			if let itemNavigation {
+				itemNavigation.selectPrevious()
+			} else {
+				NotificationCenter.default.post(name: .navigateToPreviousItem, object: nil)
+			}
 		}
-		.disabled(!(itemNavigation?.canGoPrevious ?? false))
+		.disabled(!canNavigate)
 	}
 }

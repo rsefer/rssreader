@@ -102,7 +102,7 @@ struct ContentView: View {
 					selectPrevious: selectPrevious,
 					selectNext: selectNext
 			)
-			.focusedValue(\.itemNavigation, ItemNavigation(
+			.environment(\.itemNavigation, ItemNavigation(
 					selectPrevious: selectPrevious,
 					selectNext: selectNext,
 					canGoPrevious: canGoPrevious,
@@ -146,6 +146,12 @@ struct ContentView: View {
 			platformNavigation
 					.task {
 							await logic.authenticateIfConfigured(using: service)
+					}
+					.onReceive(NotificationCenter.default.publisher(for: .navigateToPreviousItem)) { _ in
+							selectPrevious()
+					}
+					.onReceive(NotificationCenter.default.publisher(for: .navigateToNextItem)) { _ in
+							selectNext()
 					}
 					.platformSettingsPresentation(isPresented: $logic.showSettings) {
 							SettingsView()

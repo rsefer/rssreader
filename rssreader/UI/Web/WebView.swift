@@ -21,6 +21,7 @@ private enum EmbeddedWebNavigationPolicy {
 		"signup",
 		"sso"
 	]
+	private static let tokenSeparators = CharacterSet.alphanumerics.inverted
 
 	static func shouldOpenExternally(_ navigationAction: WKNavigationAction) -> Bool {
 		guard navigationAction.navigationType == .linkActivated,
@@ -32,17 +33,39 @@ private enum EmbeddedWebNavigationPolicy {
 	}
 
 	private static func shouldStayEmbedded(_ url: URL) -> Bool {
-		let candidateComponents = [
-			url.host?.lowercased() ?? "",
-			url.path.lowercased(),
-			url.query?.lowercased() ?? ""
-		]
+		if let host = url.host?.lowercased(),
+				containsAuthenticationToken(host) {
+			return true
+		}
 
-		return candidateComponents.contains(where: containsAuthenticationToken)
+		let pathSegments = url.pathComponents
+			.map(\.lowercased)
+			.filter { $0 != "/" && !$0.isEmpty }
+		if pathSegments.contains(where: authenticationTokens.contains) {
+			return true
+		}
+
+		guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+					let queryItems = components.queryItems else {
+			return false
+		}
+
+		for item in queryItems {
+			if authenticationTokens.contains(item.name.lowercased()) {
+				return true
+			}
+
+			if let value = item.value?.lowercased(),
+					authenticationTokens.contains(value) {
+				return true
+			}
+		}
+
+		return false
 	}
 
 	private static func containsAuthenticationToken(_ text: String) -> Bool {
-		let tokens = text.components(separatedBy: CharacterSet.alphanumerics.inverted)
+		let tokens = text.components(separatedBy: tokenSeparators)
 			.filter { !$0.isEmpty }
 		return !authenticationTokens.isDisjoint(with: tokens)
 	}

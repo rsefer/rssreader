@@ -76,33 +76,62 @@ struct DetailView: View {
 										.disabled(service.isLoading)
 
 										if let url = item.url {
-												Button {
-														openInBrowser()
-												} label: {
-														Image(systemName: "safari")
-												}
-												.keyboardShortcut("o", modifiers: [.command, .shift])
-												.help("Open the current article in your default browser (⌘↩ or ⌘⇧O)")
+											Button("Open in Browser", systemImage: "safari", action: openInBrowser)
+											.keyboardShortcut("o", modifiers: [.command, .shift])
+											.help("Open the current article in your default browser (⌘↩ or ⌘⇧O)")
 
-												ShareLink(item: url, subject: Text(item.title), message: Text(item.title)) {
-														Image(systemName: "square.and.arrow.up")
-												}
-												.help("Share this article")
+											ShareLink(item: url, subject: Text(item.title), message: Text(item.title)) {
+												Label("Share this article", systemImage: "square.and.arrow.up")
+											}
+											.help("Share this article")
 										}
 								}
 								.controlGroupStyle(.automatic)
 								.fixedSize()
+						}
 
-								Picker("", selection: $activeTab) {
-										ForEach(ContentTab.allCases, id: \.self) { tab in
-												Label(tab.rawValue, systemImage: tab.icon).tag(tab)
-										}
-								}
-								.pickerStyle(.segmented)
-								.fixedSize()
-								.disabled(activeTab == .web && item.url == nil)
+						ToolbarItem(placement: .primaryAction) {
+								modeChooser
 						}
 				}
+		}
+
+		@ViewBuilder
+		private var modeChooser: some View {
+				#if os(iOS)
+				HStack(spacing: 2) {
+						ForEach(ContentTab.allCases, id: \.self) { tab in
+								Button {
+										activeTab = tab
+								} label: {
+										Image(systemName: tab.icon)
+												.font(.system(size: 17, weight: .medium))
+												.frame(width: 38, height: 30)
+												.foregroundStyle(activeTab == tab ? .primary : .secondary)
+												.background {
+														if activeTab == tab {
+																RoundedRectangle(cornerRadius: 13, style: .continuous)
+																		.fill(.quaternary)
+														}
+												}
+								}
+								.buttonStyle(.plain)
+								.disabled(tab == .web && item.url == nil)
+								.accessibilityLabel(tab.rawValue)
+						}
+				}
+				.padding(4)
+				.background(.ultraThinMaterial, in: Capsule(style: .continuous))
+				#else
+				Picker("", selection: $activeTab) {
+						ForEach(ContentTab.allCases, id: \.self) { tab in
+								Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+						}
+				}
+				.pickerStyle(.segmented)
+				.controlSize(.small)
+				.disabled(activeTab == .web && item.url == nil)
+				#endif
 		}
 
 		// MARK: - Header

@@ -24,7 +24,10 @@ struct ContentToolbarView: ToolbarContent {
             .labelStyle(.iconOnly)
             .help("Previous item")
             .disabled(!canGoPrevious)
-
+					
+					NextItemButton()
+						.labelStyle(.iconOnly)
+						.help("Next item")
             Button(action: selectNext) {
                 Label("Next Item", systemImage: "chevron.down")
             }

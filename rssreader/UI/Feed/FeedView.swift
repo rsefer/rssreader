@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct FeedView: View {
-    @Environment(\.openURL) private var openURL
     @EnvironmentObject var service: FreshRSSService
     @Binding var selectedItemIDs: Set<String>
     let openSettings: () -> Void
@@ -61,7 +60,6 @@ struct FeedView: View {
 												item: item,
 												contextItems: contextSelection(for: item),
 												onOpen: { selectedItemIDs = [item.id] },
-												openInBrowser: openInBrowser,
 												copyLink: copyLink
 										)
 								}
@@ -190,10 +188,6 @@ struct FeedView: View {
             }
         }
         return [item]
-    }
-
-    private func openInBrowser(_ url: URL) {
-        openURL(url)
     }
 
     private func copyLink(_ url: URL) {

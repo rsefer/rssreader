@@ -6,7 +6,6 @@ struct FeedItemContextMenu: View {
     let item: FeedItem
     let contextItems: [FeedItem]
     let onOpen: () -> Void
-    let openInBrowser: (URL) -> Void
     let copyLink: (URL) -> Void
 
     private var anyUnread: Bool {
@@ -44,11 +43,7 @@ struct FeedItemContextMenu: View {
         if !isBatch, let url = item.url {
             Divider()
 
-            Button {
-                openInBrowser(url)
-            } label: {
-                Label("Open in Browser", systemImage: "safari")
-            }
+            OpenInBrowserButton(url: url)
 
             ShareLink(item: url, subject: Text(item.title), message: Text(item.title)) {
                 Label("Share", systemImage: "square.and.arrow.up")

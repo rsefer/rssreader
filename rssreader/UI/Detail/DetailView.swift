@@ -76,9 +76,9 @@ struct DetailView: View {
 										.disabled(service.isLoading)
 
 										if let url = item.url {
-											Button("Open in Browser", systemImage: "safari", action: openInBrowser)
-											.keyboardShortcut("o", modifiers: [.command, .shift])
-											.help("Open the current article in your default browser (⌘↩ or ⌘⇧O)")
+											OpenInBrowserButton(url: url) { lastAutoOpenedItemID = item.id }
+												.keyboardShortcut("o", modifiers: [.command, .shift])
+												.help("Open the current article in your default browser (⌘↩ or ⌘⇧O)")
 
 											ShareLink(item: url, subject: Text(item.title), message: Text(item.title)) {
 												Label("Share this article", systemImage: "square.and.arrow.up")

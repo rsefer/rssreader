@@ -103,16 +103,16 @@ struct FeedView: View {
             }
             .background(Color(.systemBackground))
         }
-        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search articles")
+        .searchable(text: $searchText, placement: .toolbar, prompt: "Search articles")
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
-                SyncButton()
-                    .environmentObject(service)
+								OpenSettingsButton(openSettings: openSettings)
             }
             ToolbarItemGroup(placement: .primaryAction) {
                 MarkAllAsReadButton()
                     .environmentObject(service)
-                OpenSettingsButton(openSettings: openSettings)
+								SyncButton()
+										.environmentObject(service)
             }
         }
         #elseif os(macOS)

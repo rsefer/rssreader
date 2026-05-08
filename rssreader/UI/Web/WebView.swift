@@ -40,7 +40,7 @@ private enum EmbeddedWebNavigationPolicy {
 			return true
 		}
 
-		let pathSegments = url.pathComponents.map { $0.lowercased() }.filter { $0 != "/" && !$0.isEmpty }
+		let pathSegments = url.pathComponents.map { $0.lowercased() }.filter { $0 != "/" }
 		if pathSegments.contains(where: authenticationTokens.contains) {
 			return true
 		}
@@ -53,7 +53,7 @@ private enum EmbeddedWebNavigationPolicy {
 		if queryItems.contains(where: { item in
 			let name = item.name.lowercased()
 			let value = item.value?.lowercased()
-			return authenticationTokens.contains(name) || value.map(authenticationTokens.contains) == true
+			return authenticationTokens.contains(name) || (value.map { authenticationTokens.contains($0) } ?? false)
 		}) {
 			return true
 		}

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A3A26E622FAE182B000CE14E /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = A3A26E612FAE182B000CE14E /* Kingfisher */; };
+		A3A26E652FAE1A2B000CE14E /* Sparkle in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = A3A26E642FAE1A2B000CE14E /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A3A26E622FAE182B000CE14E /* Kingfisher in Frameworks */,
+				A3A26E652FAE1A2B000CE14E /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +73,7 @@
 			name = rssreader;
 			packageProductDependencies = (
 				A3A26E612FAE182B000CE14E /* Kingfisher */,
+				A3A26E642FAE1A2B000CE14E /* Sparkle */,
 			);
 			productName = rssreader;
 			productReference = A3A26E482FAE1777000CE14E /* SDC RSS.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A3A26E602FAE182B000CE14E /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				A3A26E632FAE1A2B000CE14E /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A3A26E492FAE1777000CE14E /* Products */;
@@ -275,6 +279,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "SDC RSS";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.news";
+				"INFOPLIST_KEY_SUAutomaticallyUpdate[sdk=macosx*]" = NO;
+				"INFOPLIST_KEY_SUEnableAutomaticChecks[sdk=macosx*]" = YES;
+				"INFOPLIST_KEY_SUFeedURL[sdk=macosx*]" = "https://github.com/rsefer/rssreader/releases/latest/download/appcast.xml";
+				"INFOPLIST_KEY_SUPublicEDKey[sdk=macosx*]" = "$(SPARKLE_PUBLIC_ED_KEY)";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -294,6 +302,7 @@
 				PRODUCT_NAME = "SDC RSS";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
+				SPARKLE_PUBLIC_ED_KEY = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
@@ -332,6 +341,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "SDC RSS";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.news";
+				"INFOPLIST_KEY_SUAutomaticallyUpdate[sdk=macosx*]" = NO;
+				"INFOPLIST_KEY_SUEnableAutomaticChecks[sdk=macosx*]" = YES;
+				"INFOPLIST_KEY_SUFeedURL[sdk=macosx*]" = "https://github.com/rsefer/rssreader/releases/latest/download/appcast.xml";
+				"INFOPLIST_KEY_SUPublicEDKey[sdk=macosx*]" = "$(SPARKLE_PUBLIC_ED_KEY)";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -351,6 +364,7 @@
 				PRODUCT_NAME = "SDC RSS";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
+				SPARKLE_PUBLIC_ED_KEY = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
@@ -396,6 +410,14 @@
 				minimumVersion = 8.9.0;
 			};
 		};
+		A3A26E632FAE1A2B000CE14E /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -403,6 +425,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A3A26E602FAE182B000CE14E /* XCRemoteSwiftPackageReference "Kingfisher" */;
 			productName = Kingfisher;
+		};
+		A3A26E642FAE1A2B000CE14E /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A3A26E632FAE1A2B000CE14E /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

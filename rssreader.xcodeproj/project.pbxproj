@@ -11,7 +11,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A3A26E482FAE1777000CE14E /* rssreader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rssreader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A3A26E482FAE1777000CE14E /* SDC RSS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SDC RSS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -45,7 +45,7 @@
 		A3A26E492FAE1777000CE14E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A3A26E482FAE1777000CE14E /* rssreader.app */,
+				A3A26E482FAE1777000CE14E /* SDC RSS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -73,7 +73,7 @@
 				A3A26E612FAE182B000CE14E /* Kingfisher */,
 			);
 			productName = rssreader;
-			productReference = A3A26E482FAE1777000CE14E /* rssreader.app */;
+			productReference = A3A26E482FAE1777000CE14E /* SDC RSS.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -291,7 +291,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.seferdesign.rssreader;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "SDC RSS";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -348,7 +348,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.seferdesign.rssreader;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "SDC RSS";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

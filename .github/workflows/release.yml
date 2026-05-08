@@ -80,7 +80,7 @@ jobs:
 
           xcodebuild \
             -project rssreader.xcodeproj \
-            -target rssreader \
+            -scheme rssreader \
             -configuration Release \
             -destination 'generic/platform=macOS' \
             -archivePath "$ARCHIVE_PATH" \

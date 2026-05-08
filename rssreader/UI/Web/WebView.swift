@@ -9,6 +9,8 @@ import UIKit
 #endif
 
 private enum EmbeddedWebNavigationPolicy {
+	// Keep explicit auth/account route markers embedded so cross-domain sign-in flows
+	// can complete in the web view while ordinary external article links still open outside.
 	private static let authenticationTokens: Set<String> = [
 		"account",
 		"accounts",
@@ -48,15 +50,12 @@ private enum EmbeddedWebNavigationPolicy {
 			return false
 		}
 
-		for item in queryItems {
-			if authenticationTokens.contains(item.name.lowercased()) {
-				return true
-			}
-
-			if let value = item.value?.lowercased(),
-					authenticationTokens.contains(value) {
-				return true
-			}
+		if queryItems.contains(where: { item in
+			let name = item.name.lowercased()
+			let value = item.value?.lowercased()
+			return authenticationTokens.contains(name) || value.map(authenticationTokens.contains) == true
+		}) {
+			return true
 		}
 
 		return false

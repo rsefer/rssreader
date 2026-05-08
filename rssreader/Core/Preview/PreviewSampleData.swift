@@ -6,6 +6,7 @@ enum PreviewSampleData {
     static let previewFrame = CGSize(width: 1024, height: 800)
 
     static let subscriptions: [FeedSubscription] = [
+				FeedSubscription(id: "feed/https://www.techmeme.com/feed.xml", title: "Techmeme"),
         FeedSubscription(id: "feed/https://daringfireball.net/feeds/main", title: "Daring Fireball"),
         FeedSubscription(id: "feed/https://developer.apple.com/news/rss/news.rss", title: "Apple Developer News"),
         FeedSubscription(id: "feed/https://www.theverge.com/rss/index.xml", title: "The Verge")

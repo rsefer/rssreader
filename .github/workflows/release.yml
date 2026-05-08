@@ -69,28 +69,29 @@ jobs:
             echo "Created tag ${VERSION}"
           fi
 
-      - name: Archive app
+      - name: Build app
         id: archive
         shell: bash
         run: |
           set -euo pipefail
 
           VERSION="${{ steps.version.outputs.version }}"
-          ARCHIVE_PATH="$RUNNER_TEMP/rssreader.xcarchive"
+          DERIVED_DATA_PATH="$RUNNER_TEMP/DerivedData"
 
           xcodebuild \
             -project rssreader.xcodeproj \
             -scheme rssreader \
             -configuration Release \
             -destination 'generic/platform=macOS' \
-            -archivePath "$ARCHIVE_PATH" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
-            archive
+            build
 
-          APP_PATH=$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -type d -name '*.app' | head -n1)
+          APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products/Release" -maxdepth 1 -type d -name '*.app' | head -n1)
           if [[ -z "$APP_PATH" || ! -d "$APP_PATH" ]]; then
-            echo "Could not find .app bundle in archive output."
+            echo "Could not find .app bundle in build output."
+            find "$DERIVED_DATA_PATH/Build/Products" -maxdepth 3 -type d -name '*.app' || true
             exit 1
           fi
 

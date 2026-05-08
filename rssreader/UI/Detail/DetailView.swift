@@ -6,12 +6,14 @@ struct DetailView: View {
 
 		let item: FeedItem
 		let openSettings: () -> Void
+		let isSidebarVisible: Bool
 		@State private var activeTab: ContentTab = .web
 		@State private var lastAutoOpenedItemID: String?
 
-		init(item: FeedItem, openSettings: @escaping () -> Void = {}) {
+		init(item: FeedItem, openSettings: @escaping () -> Void = {}, isSidebarVisible: Bool = false) {
 				self.item = item
 				self.openSettings = openSettings
+				self.isSidebarVisible = isSidebarVisible
 		}
 
 		private var detailPrimaryThumbnailURL: URL? {
@@ -23,6 +25,47 @@ struct DetailView: View {
 
 		private var detailFallbackThumbnailURL: URL? {
 				item.publicationIconURL
+		}
+
+		private var shouldShowGlobalButtonsToolbarItemGroup: Bool {
+				#if os(iOS)
+				switch UIDevice.current.userInterfaceIdiom {
+				case .phone:
+						false
+				case .pad:
+						!isSidebarVisible
+				default:
+						true
+				}
+				#else
+				true
+				#endif
+		}
+
+	private var previousNextItemButtonsLocation: ToolbarItemPlacement {
+		#if os(iOS)
+		if isIPhone {
+			return .bottomBar
+		}
+		#endif
+		return .primaryAction
+	}
+
+	private var itemActionsButtonsLocation: ToolbarItemPlacement {
+		#if os(iOS)
+		if isIPhone {
+			return .bottomBar
+		}
+		#endif
+		return .primaryAction
+	}
+
+		private var isIPhone: Bool {
+				#if os(iOS)
+				UIDevice.current.userInterfaceIdiom == .phone
+				#else
+				false
+				#endif
 		}
 
 		var body: some View {
@@ -67,12 +110,11 @@ struct DetailView: View {
 				.navigationTitle("")
 				.toolbar {
 
-					ToolbarItemGroup(placement: .navigation) {
-						SyncButton()
-							.environmentObject(service)
-						MarkAllAsReadButton()
-							.environmentObject(service)
-						OpenSettingsButton(openSettings: openSettings)
+					if shouldShowGlobalButtonsToolbarItemGroup {
+						ToolbarItemGroup(placement: .navigation) {
+							GlobalActionsButtons(openSettings: openSettings)
+								.environmentObject(service)
+						}
 					}
 
 					ToolbarItemGroup(placement: .primaryAction) {
@@ -83,44 +125,17 @@ struct DetailView: View {
 
 					}
 
-					ToolbarItemGroup(placement: .primaryAction) {
-						PreviousItemButton()
-							.labelStyle(.iconOnly)
-							.help("Previous item")
-						NextItemButton()
-							.labelStyle(.iconOnly)
-							.help("Next item")
-					}
-
-						ToolbarItemGroup(placement: .primaryAction) {
+						ToolbarItemGroup(placement: itemActionsButtonsLocation) {
 								ControlGroup {
-										if let url = item.url {
-											OpenInBrowserButton(url: url) { lastAutoOpenedItemID = item.id }
-												.keyboardShortcut("o", modifiers: [.command, .shift])
-												.help("Open the current article in your default browser (⌘↩ or ⌘⇧O)")
-
-											ShareLink(item: url, subject: Text(item.title), message: Text(item.title)) {
-												Label("Share this article", systemImage: "square.and.arrow.up")
-											}
-											.help("Share this article")
-										}
-
-									Button {
-											Task {
-													if service.isMarkedRead(item) {
-															await service.markAsUnread(item)
-													} else {
-															await service.markAsRead(item)
-													}
-											}
-									} label: {
-											Image(systemName: service.isMarkedRead(item) ? "circle.dotted" : "checkmark.circle.fill")
-									}
-									.help(service.isMarkedRead(item) ? "Mark selected article as unread" : "Mark selected article as read")
-									.disabled(service.isLoading)
+									ItemActionsButtons(item: item)
+										.environmentObject(service)
 								}
 								.controlGroupStyle(.automatic)
 						}
+
+					ToolbarItemGroup(placement: previousNextItemButtonsLocation) {
+						PreviousNextItemButtons()
+					}
 
 
 				}

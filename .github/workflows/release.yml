@@ -89,9 +89,12 @@ jobs:
             -derivedDataPath "$DERIVED_DATA_PATH" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
+            ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS=NO \
             build 2>&1 | tee "$XCODEBUILD_LOG"; then
             echo "xcodebuild failed. Last 200 log lines:"
             tail -n 200 "$XCODEBUILD_LOG" || true
+            echo "Extracted compiler errors:"
+            rg -n "error:|fatal error:" "$XCODEBUILD_LOG" | tail -n 120 || true
             exit 1
           fi
 

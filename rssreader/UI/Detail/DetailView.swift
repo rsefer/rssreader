@@ -6,12 +6,14 @@ struct DetailView: View {
 
 		let item: FeedItem
 		let openSettings: () -> Void
+		let isSidebarVisible: Bool
 		@State private var activeTab: ContentTab = .web
 		@State private var lastAutoOpenedItemID: String?
 
-		init(item: FeedItem, openSettings: @escaping () -> Void = {}) {
+		init(item: FeedItem, openSettings: @escaping () -> Void = {}, isSidebarVisible: Bool = false) {
 				self.item = item
 				self.openSettings = openSettings
+				self.isSidebarVisible = isSidebarVisible
 		}
 
 		private var detailPrimaryThumbnailURL: URL? {
@@ -23,6 +25,21 @@ struct DetailView: View {
 
 		private var detailFallbackThumbnailURL: URL? {
 				item.publicationIconURL
+		}
+
+		private var shouldShowNavigationToolbarGroup: Bool {
+				#if os(iOS)
+				switch UIDevice.current.userInterfaceIdiom {
+				case .phone:
+						false
+				case .pad:
+						!isSidebarVisible
+				default:
+						true
+				}
+				#else
+				true
+				#endif
 		}
 
 		var body: some View {
@@ -67,12 +84,14 @@ struct DetailView: View {
 				.navigationTitle("")
 				.toolbar {
 
-					ToolbarItemGroup(placement: .navigation) {
-						SyncButton()
-							.environmentObject(service)
-						MarkAllAsReadButton()
-							.environmentObject(service)
-						OpenSettingsButton(openSettings: openSettings)
+					if shouldShowNavigationToolbarGroup {
+						ToolbarItemGroup(placement: .navigation) {
+							SyncButton()
+								.environmentObject(service)
+							MarkAllAsReadButton()
+								.environmentObject(service)
+							OpenSettingsButton(openSettings: openSettings)
+						}
 					}
 
 					ToolbarItemGroup(placement: .primaryAction) {

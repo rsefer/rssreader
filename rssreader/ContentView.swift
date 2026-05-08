@@ -14,6 +14,7 @@ struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject var service: FreshRSSService
 	@StateObject private var logic: ContentLogic
+	@State private var splitColumnVisibility: NavigationSplitViewVisibility = .all
 
 	init(initialSelectedItemIDs: Set<String> = []) {
 		_logic = StateObject(wrappedValue: ContentLogic(initialSelectedItemIDs: initialSelectedItemIDs))
@@ -63,7 +64,7 @@ struct ContentView: View {
 							openSettings: { logic.openSettings() }
 					)
 					.navigationDestination(isPresented: isDetailPresented) {
-							detailContent
+							detailContent(isSidebarVisible: false)
 					}
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -71,16 +72,34 @@ struct ContentView: View {
 	}
 
 	private var splitNavigation: some View {
-			NavigationSplitView {
+			NavigationSplitView(columnVisibility: $splitColumnVisibility) {
 					FeedView(
 							selectedItemIDs: $logic.selectedItemIDs,
 							openSettings: { logic.openSettings() }
 					)
 					.navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 420)
 			} detail: {
-					detailContent
+					GeometryReader { proxy in
+							let sidebarVisibleByWidth = isIPadSidebarVisible(detailWidth: proxy.size.width)
+							let sidebarVisibleBySplitState = splitColumnVisibility != .detailOnly
+							detailContent(isSidebarVisible: sidebarVisibleBySplitState || sidebarVisibleByWidth)
+									.frame(maxWidth: .infinity, maxHeight: .infinity)
+					}
 			}
 			.navigationSplitViewStyle(.balanced)
+	}
+
+	private func isIPadSidebarVisible(detailWidth: CGFloat) -> Bool {
+			#if os(iOS)
+			guard UIDevice.current.userInterfaceIdiom == .pad else {
+					return false
+			}
+
+			let screenWidth = UIScreen.main.bounds.width
+			return detailWidth < (screenWidth - 40)
+			#else
+			false
+			#endif
 	}
 
 	private var macNavigation: some View {
@@ -90,7 +109,7 @@ struct ContentView: View {
 							openSettings: { logic.openSettings() }
 					)
 			} detail: {
-					detailContent
+					detailContent(isSidebarVisible: false)
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 			.background(.background)
@@ -126,9 +145,9 @@ struct ContentView: View {
 	}
 
 	@ViewBuilder
-	private var detailContent: some View {
+	private func detailContent(isSidebarVisible: Bool) -> some View {
 			if let item = selectedItem {
-					DetailView(item: item, openSettings: { logic.openSettings() })
+					DetailView(item: item, openSettings: { logic.openSettings() }, isSidebarVisible: isSidebarVisible)
 							.environmentObject(service)
 			} else {
 					EmptyDetailPlaceholderView(

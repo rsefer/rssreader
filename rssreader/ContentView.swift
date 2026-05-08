@@ -14,7 +14,7 @@ struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject var service: FreshRSSService
     @StateObject private var logic = ContentLogic()
-	
+
 	private var isDetailPresented: Binding<Bool> {
 					Binding(
 							get: { selectedItem != nil },
@@ -43,9 +43,13 @@ struct ContentView: View {
 			private func selectNext() {
 					logic.selectNext(in: service.items)
 			}
-	
+
 	private var useSplitLayout: Bool {
+			#if os(iOS)
 			UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
+			#else
+			false
+			#endif
 	}
 
 	private var phoneNavigation: some View {
@@ -59,7 +63,7 @@ struct ContentView: View {
 					}
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-			.background(Color(.systemBackground))
+			.background(.background)
 	}
 
 	private var splitNavigation: some View {
@@ -73,6 +77,54 @@ struct ContentView: View {
 					detailContent
 			}
 			.navigationSplitViewStyle(.balanced)
+	}
+
+	private var macNavigation: some View {
+			NavigationSplitView {
+					FeedView(
+							selectedItemIDs: $logic.selectedItemIDs,
+							openSettings: { logic.openSettings() }
+					)
+			} detail: {
+					detailContent
+			}
+			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+			.background(.background)
+			.platformMainToolbar(
+					canGoPrevious: canGoPrevious,
+					canGoNext: canGoNext,
+					showSettings: { logic.openSettings() },
+					selectPrevious: selectPrevious,
+					selectNext: selectNext
+			)
+			.platformMainKeyboardHandlers(
+					canGoPrevious: canGoPrevious,
+					canGoNext: canGoNext,
+					isTextFieldFocused: isTextFieldFocused,
+					selectPrevious: selectPrevious,
+					selectNext: selectNext
+			)
+			.focusedValue(\.itemNavigation, ItemNavigation(
+					selectPrevious: selectPrevious,
+					selectNext: selectNext,
+					canGoPrevious: canGoPrevious,
+					canGoNext: canGoNext
+			))
+	}
+
+	@ViewBuilder
+	private var platformNavigation: some View {
+			#if os(iOS)
+			Group {
+					if useSplitLayout {
+							splitNavigation
+					} else {
+							phoneNavigation
+					}
+			}
+			#elseif os(macOS)
+			macNavigation
+			#endif
 	}
 
 	@ViewBuilder
@@ -92,100 +144,31 @@ struct ContentView: View {
 			PlatformCapabilities.isTextInputFocused()
 	}
 
-    var body: some View {
-//        VStack {
-//            Image(systemName: "globe")
-//                .imageScale(.large)
-//                .foregroundStyle(.tint)
-//            Text("Hello, world!")
-//        }
-//        .padding()
-			
-			#if os(iOS)
-			Group {
-					if useSplitLayout {
-							splitNavigation
-					} else {
-							phoneNavigation
+	var body: some View {
+			platformNavigation
+					.task {
+							await logic.authenticateIfConfigured(using: service)
 					}
-			}
-			.task {
-					await logic.authenticateIfConfigured(using: service)
-			}
-			.platformSettingsPresentation(isPresented: $logic.showSettings) {
-					SettingsView()
-							.environmentObject(service)
-			}
-			.onChange(of: logic.selectedItemIDs, initial: false) { _, _ in
-					logic.markSelectionAsReadIfNeeded(using: service, items: service.items)
-			}
-			.onChange(of: service.items, initial: false) { _, newItems in
-					logic.reconcileSelection(with: newItems)
-			}
-			.onChange(of: scenePhase, initial: true) { _, newPhase in
-					logic.handleScenePhase(newPhase, service: service)
-			}
-			.onDisappear {
-					logic.stopAutoSyncLoop()
-			}
-			.platformOpenSelectedItemShortcut(url: selectedItem?.url) { url in
-					openURL(url)
-			}
-			#elseif os(macOS)
-			NavigationSplitView {
-					FeedView(
-							selectedItemIDs: $logic.selectedItemIDs,
-							openSettings: { logic.openSettings() }
-					)
-			} detail: {
-					detailContent
-			}
-			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-			.background(.background)
-			.platformMainToolbar(
-					canGoPrevious: canGoPrevious,
-					canGoNext: canGoNext,
-					showSettings: { logic.openSettings() },
-					selectPrevious: selectPrevious,
-					selectNext: selectNext
-			)
-			.task {
-					await logic.authenticateIfConfigured(using: service)
-			}
-			.platformSettingsPresentation(isPresented: $logic.showSettings) {
-					SettingsView()
-							.environmentObject(service)
-			}
-			.onChange(of: logic.selectedItemIDs, initial: false) { _, _ in
-					logic.markSelectionAsReadIfNeeded(using: service, items: service.items)
-			}
-			.onChange(of: service.items, initial: false) { _, newItems in
-					logic.reconcileSelection(with: newItems)
-			}
-			.onChange(of: scenePhase, initial: true) { _, newPhase in
-					logic.handleScenePhase(newPhase, service: service)
-			}
-			.onDisappear {
-					logic.stopAutoSyncLoop()
-			}
-			.platformMainKeyboardHandlers(
-					canGoPrevious: canGoPrevious,
-					canGoNext: canGoNext,
-					isTextFieldFocused: isTextFieldFocused,
-					selectPrevious: selectPrevious,
-					selectNext: selectNext
-			)
-			.platformOpenSelectedItemShortcut(url: selectedItem?.url) { url in
-					openURL(url)
-			}
-			.focusedValue(\.itemNavigation, ItemNavigation(
-					selectPrevious: selectPrevious,
-					selectNext: selectNext,
-					canGoPrevious: canGoPrevious,
-					canGoNext: canGoNext
-			))
-			#endif
-    }
+					.platformSettingsPresentation(isPresented: $logic.showSettings) {
+							SettingsView()
+									.environmentObject(service)
+					}
+					.onChange(of: logic.selectedItemIDs, initial: false) { _, _ in
+							logic.markSelectionAsReadIfNeeded(using: service, items: service.items)
+					}
+					.onChange(of: service.items, initial: false) { _, newItems in
+							logic.reconcileSelection(with: newItems)
+					}
+					.onChange(of: scenePhase, initial: true) { _, newPhase in
+							logic.handleScenePhase(newPhase, service: service)
+					}
+					.onDisappear {
+							logic.stopAutoSyncLoop()
+					}
+					.platformOpenSelectedItemShortcut(url: selectedItem?.url) { url in
+							openURL(url)
+					}
+	}
 }
 
 private struct ContentViewPreviewContainer: View {

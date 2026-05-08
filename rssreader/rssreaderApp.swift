@@ -9,14 +9,13 @@ import SwiftUI
 
 @main
 struct rssreaderApp: App {
-	
+
 	@StateObject private var service = AppBootstrap.makeService()
-	@FocusedValue(\.itemNavigation) private var itemNavigation
 
 	init() {
 			AppBootstrap.configure()
 	}
-	
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -29,24 +28,11 @@ struct rssreaderApp: App {
 														.environmentObject(service)
 												MarkAllAsReadButton()
 														.environmentObject(service)
-
-												Button("Mark All as Unread") {
-														Task { await service.markAllAsUnread() }
-												}
-
+												MarkAllAsUnreadButton()
+														.environmentObject(service)
 												Divider()
-
-												Button("Previous Item") {
-														itemNavigation?.selectPrevious()
-												}
-												.keyboardShortcut("k", modifiers: [])
-												.disabled(!(itemNavigation?.canGoPrevious ?? false))
-
-												Button("Next Item") {
-														itemNavigation?.selectNext()
-												}
-												.keyboardShortcut("j", modifiers: [])
-												.disabled(!(itemNavigation?.canGoNext ?? false))
+												PreviousItemButton()
+												NextItemButton()
 
 												Button("New") {
 														service.sidebarMode = .new

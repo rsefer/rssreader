@@ -11,6 +11,9 @@ import SwiftUI
 struct rssreaderApp: App {
 
 	@StateObject private var service = AppBootstrap.makeService()
+	#if os(macOS)
+	@StateObject private var sparkleUpdater = SparkleUpdaterController()
+	#endif
 
 	init() {
 			AppBootstrap.configure()
@@ -21,35 +24,42 @@ struct rssreaderApp: App {
             ContentView()
 						.environmentObject(service)
         }
-				.commands {
-										CommandGroup(replacing: .newItem) {}
-										CommandMenu("Feeds") {
-												SyncButton()
-														.environmentObject(service)
-												MarkAllAsReadButton()
-														.environmentObject(service)
-												MarkAllAsUnreadButton()
-														.environmentObject(service)
-												Divider()
-												PreviousNextItemButtons()
+		.commands {
+			CommandGroup(replacing: .newItem) {}
+			CommandMenu("Feeds") {
+				SyncButton()
+					.environmentObject(service)
+				MarkAllAsReadButton()
+					.environmentObject(service)
+				MarkAllAsUnreadButton()
+					.environmentObject(service)
+				Divider()
+				PreviousNextItemButtons()
 
-												Button("New") {
-														service.sidebarMode = .new
-												}
-												.keyboardShortcut("1", modifiers: .command)
+				Button("New") {
+					service.sidebarMode = .new
+				}
+				.keyboardShortcut("1", modifiers: .command)
 
-												Button("Today") {
-														service.sidebarMode = .today
-												}
-												.keyboardShortcut("2", modifiers: .command)
+				Button("Today") {
+					service.sidebarMode = .today
+				}
+				.keyboardShortcut("2", modifiers: .command)
 
-												Button("Archive") {
-														service.sidebarMode = .archive
-												}
-												.keyboardShortcut("3", modifiers: .command)
+				Button("Archive") {
+					service.sidebarMode = .archive
+				}
+				.keyboardShortcut("3", modifiers: .command)
 
-												Divider()
-										}
-								}
+				Divider()
+			}
+			#if os(macOS)
+			CommandGroup(after: .appInfo) {
+				Button("Check for Updates...") {
+					sparkleUpdater.checkForUpdates()
+				}
+			}
+			#endif
+		}
     }
 }

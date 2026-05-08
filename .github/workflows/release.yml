@@ -89,6 +89,7 @@ jobs:
             -derivedDataPath "$DERIVED_DATA_PATH" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
+            SPARKLE_PUBLIC_ED_KEY="${{ secrets['SPARKLE_PUBLIC_ED_KEY'] }}" \
             ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS=NO \
             build 2>&1 | tee "$XCODEBUILD_LOG"; then
             echo "xcodebuild failed. Last 200 log lines:"
@@ -129,6 +130,30 @@ jobs:
           echo "zip_asset_name=${ZIP_ASSET_NAME}" >> "$GITHUB_OUTPUT"
           echo "dmg_asset_path=${DMG_ASSET_PATH}" >> "$GITHUB_OUTPUT"
           echo "dmg_asset_name=${DMG_ASSET_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Sparkle update prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_PATH="${{ steps.archive.outputs.app_path }}"
+          INFO_PLIST="$APP_PATH/Contents/Info.plist"
+
+          FEED_URL=$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$INFO_PLIST" 2>/dev/null || true)
+          PUBLIC_KEY=$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$INFO_PLIST" 2>/dev/null || true)
+
+          if [[ -z "$FEED_URL" ]]; then
+            echo "::error::SUFeedURL is missing from app Info.plist; Sparkle update checks cannot work."
+            exit 1
+          fi
+
+          if [[ -z "$PUBLIC_KEY" ]]; then
+            echo "::warning::SUPublicEDKey is empty. Configure SPARKLE_PUBLIC_ED_KEY secret for EdDSA-signed update verification."
+          fi
+
+          if ! codesign --verify --deep --strict "$APP_PATH"; then
+            echo "::warning::App bundle is not code signed. Sparkle updates may fail to install on end-user systems."
+          fi
 
       - name: Upload xcodebuild log on failure
         if: ${{ failure() }}
@@ -203,3 +228,58 @@ jobs:
               --notes-file release_notes.md \
               --latest
           fi
+
+      - name: Generate Sparkle appcast
+        id: appcast
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP_ASSET_NAME="${{ steps.archive.outputs.zip_asset_name }}"
+          ZIP_ASSET_PATH="${{ steps.archive.outputs.zip_asset_path }}"
+          APPCAST_PATH="$RUNNER_TEMP/appcast.xml"
+          ZIP_SIZE=$(stat -f%z "$ZIP_ASSET_PATH")
+          PUB_DATE=$(LC_ALL=C date -u "+%a, %d %b %Y %H:%M:%S +0000")
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/${ZIP_ASSET_NAME}"
+          RELEASE_NOTES_URL="https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
+
+          cat > "$APPCAST_PATH" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0"
+               xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+               xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>SDC RSS Updates</title>
+              <link>https://github.com/${{ github.repository }}</link>
+              <description>Latest SDC RSS release updates</description>
+              <language>en</language>
+              <item>
+                <title>Version ${VERSION}</title>
+                <pubDate>${PUB_DATE}</pubDate>
+                <sparkle:releaseNotesLink>${RELEASE_NOTES_URL}</sparkle:releaseNotesLink>
+                <enclosure
+                  url="${DOWNLOAD_URL}"
+                  sparkle:version="${VERSION}"
+                  sparkle:shortVersionString="${VERSION}"
+                  sparkle:os="macos"
+                  length="${ZIP_SIZE}"
+                  type="application/octet-stream" />
+              </item>
+            </channel>
+          </rss>
+          EOF
+
+          echo "appcast_path=${APPCAST_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Sparkle appcast
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          APPCAST_PATH="${{ steps.appcast.outputs.appcast_path }}"
+
+          gh release upload "$VERSION" "$APPCAST_PATH#appcast.xml" --clobber

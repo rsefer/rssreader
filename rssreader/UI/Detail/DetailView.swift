@@ -59,21 +59,14 @@ struct DetailView: View {
 						activeTab = item.url != nil ? .web : .content
 				}
 				.toolbar {
+					
+					ToolbarItem(placement: .primaryAction) {
+							modeChooser
+					}
+					
 						ToolbarItemGroup(placement: .primaryAction) {
 								ControlGroup {
-										Button {
-												Task {
-														if service.isMarkedRead(item) {
-																await service.markAsUnread(item)
-														} else {
-																await service.markAsRead(item)
-														}
-												}
-										} label: {
-												Image(systemName: service.isMarkedRead(item) ? "circle.dotted" : "checkmark.circle.fill")
-										}
-										.help(service.isMarkedRead(item) ? "Mark selected article as unread" : "Mark selected article as read")
-										.disabled(service.isLoading)
+										
 
 										if let url = item.url {
 											OpenInBrowserButton(url: url) { lastAutoOpenedItemID = item.id }
@@ -85,14 +78,26 @@ struct DetailView: View {
 											}
 											.help("Share this article")
 										}
+									
+									Button {
+											Task {
+													if service.isMarkedRead(item) {
+															await service.markAsUnread(item)
+													} else {
+															await service.markAsRead(item)
+													}
+											}
+									} label: {
+											Image(systemName: service.isMarkedRead(item) ? "circle.dotted" : "checkmark.circle.fill")
+									}
+									.help(service.isMarkedRead(item) ? "Mark selected article as unread" : "Mark selected article as read")
+									.disabled(service.isLoading)
 								}
 								.controlGroupStyle(.automatic)
 								.fixedSize()
 						}
 
-						ToolbarItem(placement: .primaryAction) {
-								modeChooser
-						}
+						
 				}
 		}
 
@@ -289,6 +294,8 @@ struct DetailView: View {
 						font-size: 0.9em;
 						color: #555;
 						text-align: left;
+						word-break: break-all;
+						overflow-wrap: break-word;
 				}
 				.meta-row:last-child { margin-bottom: 0; }
 				.meta-label {

@@ -221,8 +221,10 @@ private struct FeedViewPreviewContainer: View {
 
 #Preview("FeedView") {
 	FeedViewPreviewContainer()
+		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
 }
 
 #Preview("FeedView - Item Selected") {
 	FeedViewPreviewContainer(preselectItem: true)
+		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
 }

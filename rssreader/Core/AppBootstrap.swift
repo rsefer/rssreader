@@ -13,6 +13,12 @@ enum AppBootstrap {
     static func makePreviewService(itemCount: Int = 10) -> FreshRSSService {
         let service = FreshRSSService()
 
+        // Clear credentials so isConfigured returns false and no real network
+        // calls are made when the preview canvas initialises the view hierarchy.
+        service.serverURL = ""
+        service.username = ""
+        service.password = ""
+
         service.subscriptions = PreviewSampleData.subscriptions
         service.items = PreviewSampleData.items(count: itemCount)
         service.sidebarMode = .new

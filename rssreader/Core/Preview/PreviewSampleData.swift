@@ -1,6 +1,10 @@
 import Foundation
+import CoreGraphics
 
 enum PreviewSampleData {
+    /// Standard canvas size for macOS previews.
+    static let previewFrame = CGSize(width: 1024, height: 800)
+
     static let subscriptions: [FeedSubscription] = [
         FeedSubscription(id: "feed/https://daringfireball.net/feeds/main", title: "Daring Fireball"),
         FeedSubscription(id: "feed/https://developer.apple.com/news/rss/news.rss", title: "Apple Developer News"),

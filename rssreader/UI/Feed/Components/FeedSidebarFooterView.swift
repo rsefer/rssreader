@@ -14,7 +14,6 @@ struct FeedSidebarFooterView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
-							OpenSettingsButton(openSettings: openSettings)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)

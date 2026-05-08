@@ -10,12 +10,13 @@ struct ContentToolbarView: ToolbarContent {
     let selectNext: () -> Void
 
     var body: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigation) {
-            SyncButton()
-							.environmentObject(service)
-            MarkAllAsReadButton()
-							.environmentObject(service)
-        }
+			ToolbarItemGroup(placement: .navigation) {
+				SyncButton()
+					.environmentObject(service)
+				MarkAllAsReadButton()
+					.environmentObject(service)
+				OpenSettingsButton(openSettings: showSettings)
+			}
 
         ToolbarItemGroup(placement: .primaryAction) {
 					PreviousItemButton()
@@ -24,13 +25,6 @@ struct ContentToolbarView: ToolbarContent {
 					NextItemButton()
 						.labelStyle(.iconOnly)
 						.help("Next item")
-            
-
-            Button(action: showSettings) {
-                Label("Settings", systemImage: "gearshape")
-            }
-            .labelStyle(.iconOnly)
-            .help("Settings")
         }
     }
 }

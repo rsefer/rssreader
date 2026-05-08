@@ -56,7 +56,8 @@ struct WebView: NSViewRepresentable {
 										 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
 						// Open link clicks in the default browser; allow the initial page load
 						if navigationAction.navigationType == .linkActivated,
-							 let url = navigationAction.request.url {
+							 let url = navigationAction.request.url,
+							 !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) {
 								NSWorkspace.shared.open(url)
 								decisionHandler(.cancel)
 								return
@@ -108,7 +109,8 @@ struct WebView: UIViewRepresentable {
 										 decidePolicyFor navigationAction: WKNavigationAction,
 										 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
 						if navigationAction.navigationType == .linkActivated,
-							 let url = navigationAction.request.url {
+							 let url = navigationAction.request.url,
+							 !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) {
 								UIApplication.shared.open(url)
 								decisionHandler(.cancel)
 								return
@@ -161,7 +163,8 @@ struct ReaderWebView: NSViewRepresentable {
 																				 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
 												// Open link clicks in the default browser; allow the initial page load
 												if navigationAction.navigationType == .linkActivated,
-													 let url = navigationAction.request.url {
+													 let url = navigationAction.request.url,
+													 !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) {
 														NSWorkspace.shared.open(url)
 														decisionHandler(.cancel)
 														return
@@ -372,7 +375,8 @@ struct ReaderWebView: UIViewRepresentable {
 																				 decidePolicyFor navigationAction: WKNavigationAction,
 																				 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
 												if navigationAction.navigationType == .linkActivated,
-													 let url = navigationAction.request.url {
+													 let url = navigationAction.request.url,
+													 !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) {
 														UIApplication.shared.open(url)
 														decisionHandler(.cancel)
 														return

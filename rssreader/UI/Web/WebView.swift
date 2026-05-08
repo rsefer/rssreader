@@ -38,9 +38,7 @@ private enum EmbeddedWebNavigationPolicy {
 			return true
 		}
 
-		let pathSegments = url.pathComponents
-			.map(\.lowercased)
-			.filter { $0 != "/" && !$0.isEmpty }
+		let pathSegments = url.pathComponents.map { $0.lowercased() }.filter { $0 != "/" && !$0.isEmpty }
 		if pathSegments.contains(where: authenticationTokens.contains) {
 			return true
 		}
@@ -65,8 +63,7 @@ private enum EmbeddedWebNavigationPolicy {
 	}
 
 	private static func containsAuthenticationToken(_ text: String) -> Bool {
-		let tokens = text.components(separatedBy: tokenSeparators)
-			.filter { !$0.isEmpty }
+		let tokens = text.components(separatedBy: tokenSeparators).filter { !$0.isEmpty }
 		return !authenticationTokens.isDisjoint(with: tokens)
 	}
 }

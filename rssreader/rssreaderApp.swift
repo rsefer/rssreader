@@ -31,8 +31,7 @@ struct rssreaderApp: App {
 												MarkAllAsUnreadButton()
 														.environmentObject(service)
 												Divider()
-												PreviousItemButton()
-												NextItemButton()
+												PreviousNextItemButtons()
 
 												Button("New") {
 														service.sidebarMode = .new

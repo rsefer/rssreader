@@ -27,7 +27,7 @@ struct DetailView: View {
 				item.publicationIconURL
 		}
 
-		private var shouldShowNavigationToolbarGroup: Bool {
+		private var shouldShowGlobalButtonsToolbarItemGroup: Bool {
 				#if os(iOS)
 				switch UIDevice.current.userInterfaceIdiom {
 				case .phone:
@@ -39,6 +39,32 @@ struct DetailView: View {
 				}
 				#else
 				true
+				#endif
+		}
+
+	private var previousNextItemButtonsLocation: ToolbarItemPlacement {
+		#if os(iOS)
+		if isIPhone {
+			return .bottomBar
+		}
+		#endif
+		return .primaryAction
+	}
+
+	private var itemActionsButtonsLocation: ToolbarItemPlacement {
+		#if os(iOS)
+		if isIPhone {
+			return .bottomBar
+		}
+		#endif
+		return .primaryAction
+	}
+
+		private var isIPhone: Bool {
+				#if os(iOS)
+				UIDevice.current.userInterfaceIdiom == .phone
+				#else
+				false
 				#endif
 		}
 
@@ -84,13 +110,10 @@ struct DetailView: View {
 				.navigationTitle("")
 				.toolbar {
 
-					if shouldShowNavigationToolbarGroup {
+					if shouldShowGlobalButtonsToolbarItemGroup {
 						ToolbarItemGroup(placement: .navigation) {
-							SyncButton()
+							GlobalActionsButtons(openSettings: openSettings)
 								.environmentObject(service)
-							MarkAllAsReadButton()
-								.environmentObject(service)
-							OpenSettingsButton(openSettings: openSettings)
 						}
 					}
 
@@ -102,44 +125,17 @@ struct DetailView: View {
 
 					}
 
-					ToolbarItemGroup(placement: .primaryAction) {
-						PreviousItemButton()
-							.labelStyle(.iconOnly)
-							.help("Previous item")
-						NextItemButton()
-							.labelStyle(.iconOnly)
-							.help("Next item")
-					}
-
-						ToolbarItemGroup(placement: .primaryAction) {
+						ToolbarItemGroup(placement: itemActionsButtonsLocation) {
 								ControlGroup {
-										if let url = item.url {
-											OpenInBrowserButton(url: url) { lastAutoOpenedItemID = item.id }
-												.keyboardShortcut("o", modifiers: [.command, .shift])
-												.help("Open the current article in your default browser (⌘↩ or ⌘⇧O)")
-
-											ShareLink(item: url, subject: Text(item.title), message: Text(item.title)) {
-												Label("Share this article", systemImage: "square.and.arrow.up")
-											}
-											.help("Share this article")
-										}
-
-									Button {
-											Task {
-													if service.isMarkedRead(item) {
-															await service.markAsUnread(item)
-													} else {
-															await service.markAsRead(item)
-													}
-											}
-									} label: {
-											Image(systemName: service.isMarkedRead(item) ? "circle.dotted" : "checkmark.circle.fill")
-									}
-									.help(service.isMarkedRead(item) ? "Mark selected article as unread" : "Mark selected article as read")
-									.disabled(service.isLoading)
+									ItemActionsButtons(item: item)
+										.environmentObject(service)
 								}
 								.controlGroupStyle(.automatic)
 						}
+
+					ToolbarItemGroup(placement: previousNextItemButtonsLocation) {
+						PreviousNextItemButtons()
+					}
 
 
 				}

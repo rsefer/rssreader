@@ -121,12 +121,6 @@ struct ContentView: View {
 					selectPrevious: selectPrevious,
 					selectNext: selectNext
 			)
-			.environment(\.itemNavigation, ItemNavigation(
-					selectPrevious: selectPrevious,
-					selectNext: selectNext,
-					canGoPrevious: canGoPrevious,
-					canGoNext: canGoNext
-			))
 	}
 
 	@ViewBuilder
@@ -163,6 +157,12 @@ struct ContentView: View {
 
 	var body: some View {
 			platformNavigation
+					.environment(\.itemNavigation, ItemNavigation(
+							selectPrevious: selectPrevious,
+							selectNext: selectNext,
+							canGoPrevious: canGoPrevious,
+							canGoNext: canGoNext
+					))
 					.task {
 							await logic.authenticateIfConfigured(using: service)
 					}

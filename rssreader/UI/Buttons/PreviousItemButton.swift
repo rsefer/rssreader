@@ -16,5 +16,6 @@ struct PreviousItemButton: View {
 			}
 		}
 		.disabled(!canNavigate)
+		.labelStyle(.iconOnly)
 	}
 }

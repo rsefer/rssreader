@@ -11,9 +11,6 @@ import SwiftUI
 struct rssreaderApp: App {
 
 	@StateObject private var service = AppBootstrap.makeService()
-	#if os(macOS)
-	@StateObject private var sparkleUpdater = SparkleUpdaterController()
-	#endif
 
 	init() {
 			AppBootstrap.configure()
@@ -53,13 +50,6 @@ struct rssreaderApp: App {
 
 				Divider()
 			}
-			#if os(macOS)
-			CommandGroup(after: .appInfo) {
-				Button("Check for Updates...") {
-					sparkleUpdater.checkForUpdates()
-				}
-			}
-			#endif
 		}
     }
 }

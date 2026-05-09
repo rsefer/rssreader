@@ -285,7 +285,7 @@ struct ReaderWebView: PlatformViewRepresentable {
     }
 
     final class ReaderCoordinator: ExternalLinkNavigationCoordinator {
-        private(set) var currentURL = URL(string: "about:blank")!
+        private(set) var currentURL = URL(fileURLWithPath: "/")
         private(set) var fallbackHTML: String?
         var didLoadReaderHTML = false
 
@@ -293,7 +293,6 @@ struct ReaderWebView: PlatformViewRepresentable {
             guard currentURL != url || self.fallbackHTML != fallbackHTML else { return }
             currentURL = url
             self.fallbackHTML = fallbackHTML
-            didLoadReaderHTML = false
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -301,11 +300,9 @@ struct ReaderWebView: PlatformViewRepresentable {
 
             webView.evaluateJavaScript(ReaderContentExtractor.extractionScript) { [weak self, weak webView] result, error in
                 guard let self, let webView else { return }
-                #if DEBUG
                 if let error {
-                    debugPrint("Reader extraction script failed:", error)
+                    NSLog("Reader extraction script failed: %@", String(describing: error))
                 }
-                #endif
 
                 let extractedBody = (result as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let extractedTextLength = ReaderContentExtractor.plainTextLength(fromHTML: extractedBody)

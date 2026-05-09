@@ -292,6 +292,7 @@ struct ReaderWebView: PlatformViewRepresentable {
             guard currentURL != url || self.fallbackHTML != fallbackHTML else { return }
             currentURL = url
             self.fallbackHTML = fallbackHTML
+            didLoadReaderHTML = false
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

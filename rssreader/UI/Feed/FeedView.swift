@@ -46,9 +46,10 @@ struct FeedView: View {
 				List(selection: $selectedItemIDs) {
 						Section {
 								ForEach(displayedItems) { item in
+                                        let isRead = service.isMarkedRead(item)
 										FeedItemRow(
 												item: item,
-												isRead: service.isMarkedRead(item),
+                                                isRead: isRead,
 												loadImages: service.loadArticleImages,
 												thumbnailSize: CGFloat(service.articleThumbnailSize),
 												thumbnailAspectRatio: service.articleThumbnailAspectRatio,

@@ -59,10 +59,16 @@ struct FeedView: View {
 												FeedItemContextMenu(
 														item: item,
 														contextItems: contextSelection(for: item),
-														onOpen: { selectedItemIDs = [item.id] },
-														copyLink: copyLink
+														onOpen: { selectedItemIDs = [item.id] }
 												)
 										}
+										#if os(iOS)
+										.swipeActions(edge: .trailing, allowsFullSwipe: true) {
+											ToggleItemReadStatusButton(item: item)
+												.environmentObject(service)
+												.tint(isRead ? .orange : .blue)
+										}
+										#endif
 								}
 						}
 						#if os(iOS)
@@ -191,10 +197,6 @@ struct FeedView: View {
             }
         }
         return [item]
-    }
-
-    private func copyLink(_ url: URL) {
-        PlatformCapabilities.copyToPasteboard(url.absoluteString)
     }
 }
 

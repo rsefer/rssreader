@@ -15,7 +15,7 @@ struct PreviousItemButton: View {
 				NotificationCenter.default.post(name: .navigateToPreviousItem, object: nil)
 			}
 		}
+		.help("Previous Item")
 		.disabled(!canNavigate)
-		.labelStyle(.iconOnly)
 	}
 }

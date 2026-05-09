@@ -6,7 +6,6 @@ struct FeedItemContextMenu: View {
     let item: FeedItem
     let contextItems: [FeedItem]
     let onOpen: () -> Void
-    let copyLink: (URL) -> Void
 
     private var anyUnread: Bool {
         contextItems.contains(where: { !service.isMarkedRead($0) })
@@ -21,39 +20,29 @@ struct FeedItemContextMenu: View {
     }
 
     var body: some View {
-        Button(action: onOpen) {
-            Label("Open", systemImage: "doc.text.magnifyingglass")
-        }
-        .disabled(isBatch)
+       
+        if isBatch {
+					Button {
+							Task { await service.markAsRead(contextItems) }
+					} label: {
+							Label(isBatch ? "Mark Selection as Read" : "Mark as Read", systemImage: "checkmark.circle")
+					}
+					.disabled(!anyUnread)
 
-        Button {
-            Task { await service.markAsRead(contextItems) }
-        } label: {
-            Label(isBatch ? "Mark Selection as Read" : "Mark as Read", systemImage: "checkmark.circle")
-        }
-        .disabled(!anyUnread)
-
-        Button {
-            Task { await service.markAsUnread(contextItems) }
-        } label: {
-            Label(isBatch ? "Mark Selection as Unread" : "Mark as Unread", systemImage: "circle.dotted")
-        }
-        .disabled(!anyRead)
-
-        if !isBatch, let url = item.url {
-            Divider()
-
-            OpenInBrowserButton(url: url)
-
-            ShareLink(item: url, subject: Text(item.title), message: Text(item.title)) {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
-
-            Button {
-                copyLink(url)
-            } label: {
-                Label("Copy Link", systemImage: "link")
-            }
-        }
+					Button {
+							Task { await service.markAsUnread(contextItems) }
+					} label: {
+							Label(isBatch ? "Mark Selection as Unread" : "Mark as Unread", systemImage: "circle.dotted")
+					}
+					.disabled(!anyRead)
+					
+				} else {
+					Button(action: onOpen) {
+							Label("Open", systemImage: "doc.text.magnifyingglass")
+					}
+					.disabled(isBatch)
+					Divider()
+					ItemActionsButtons(item: item)
+				}
     }
 }

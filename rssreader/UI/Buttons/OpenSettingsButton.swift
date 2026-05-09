@@ -7,7 +7,6 @@ struct OpenSettingsButton: View {
 		Button(action: openSettings) {
 				Image(systemName: "gearshape")
 		}
-		.accessibilityLabel("Settings")
 		.help("Settings")
 		
 	}

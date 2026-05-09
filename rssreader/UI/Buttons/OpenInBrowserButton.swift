@@ -7,15 +7,20 @@ import SwiftUI
 struct OpenInBrowserButton: View {
     @Environment(\.openURL) private var openURL
 
-    let url: URL
+		let item: FeedItem
     var onOpen: (() -> Void)? = nil
 
     var body: some View {
-        Button {
-            onOpen?()
-            openURL(url)
-        } label: {
-            Label("Open in Browser", systemImage: "safari")
-        }
+			if let url = item.url {
+				Button {
+					onOpen?()
+					openURL(url)
+				} label: {
+					Label("Open in Browser", systemImage: "safari")
+				}
+				.help("Open in Browser")
+			} else {
+				EmptyView()
+			}
     }
 }

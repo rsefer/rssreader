@@ -15,7 +15,6 @@ struct SyncButton: View {
 				} label: {
 						Label("Sync", systemImage: "arrow.clockwise")
 				}
-				.labelStyle(.iconOnly)
 				.help("\(service.sidebarMode.syncLabel)")
 				.keyboardShortcut("r", modifiers: .command)
 		}

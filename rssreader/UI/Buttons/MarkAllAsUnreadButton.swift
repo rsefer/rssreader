@@ -7,5 +7,6 @@ struct MarkAllAsUnreadButton: View {
 		Button("Mark All as Unread") {
 				Task { await service.markAllAsUnread() }
 		}
+		.help("Mark All as Unread")
 	}
 }

@@ -15,7 +15,7 @@ struct NextItemButton: View {
 				NotificationCenter.default.post(name: .navigateToNextItem, object: nil)
 			}
 		}
+		.help("Next Item")
 		.disabled(!canNavigate)
-		.labelStyle(.iconOnly)
 	}
 }

@@ -9,8 +9,7 @@ struct MarkAllAsReadButton: View {
 		} label: {
 				Label("Mark All as Read", systemImage: "checkmark.circle")
 		}
-		.labelStyle(.iconOnly)
-		.help("Mark all loaded unread items as read")
+		.help("Mark All as Read")
 		.disabled(service.unreadCount == 0 || service.isLoading)
 	}
 }

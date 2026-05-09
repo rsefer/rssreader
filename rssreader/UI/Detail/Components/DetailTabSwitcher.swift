@@ -12,11 +12,11 @@ struct DetailTabSwitcher: View {
 				} label: {
 					Image(systemName: tab.icon)
 						.font(.system(size: 17, weight: .medium))
-						.frame(width: 38, height: 30)
+						.frame(width: 40, height: 32)
 						.foregroundStyle(activeTab == tab ? .primary : .secondary)
 						.background {
 							if activeTab == tab {
-								RoundedRectangle(cornerRadius: 13, style: .continuous)
+								RoundedRectangle(cornerRadius: 18, style: .continuous)
 									.fill(.quaternary)
 							}
 						}
@@ -26,6 +26,5 @@ struct DetailTabSwitcher: View {
 				.accessibilityLabel(tab.rawValue)
 			}
 		}
-		.background(.ultraThinMaterial, in: Capsule(style: .continuous))
 	}
 }

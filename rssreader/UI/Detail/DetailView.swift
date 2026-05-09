@@ -118,10 +118,9 @@ struct DetailView: View {
 					}
 
 					ToolbarItemGroup(placement: .primaryAction) {
-
 						ControlGroup {
 							DetailTabSwitcher(activeTab: $activeTab, hasWebURL: item.url != nil)
-						}.controlGroupStyle(.automatic)
+						}
 
 					}
 

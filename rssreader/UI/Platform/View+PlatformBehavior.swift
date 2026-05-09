@@ -105,15 +105,19 @@ func platformFeedEmptyState(
     sync: @escaping () async -> Void
 ) -> some View {
     #if os(iOS)
-    ScrollView {
-        FeedEmptyStateView(
-            isLoading: isLoading,
-            errorMessage: errorMessage,
-            retry: retry
-        )
-    }
-    .refreshable {
-        await sync()
+    GeometryReader { proxy in
+        ScrollView {
+            FeedEmptyStateView(
+                isLoading: isLoading,
+                errorMessage: errorMessage,
+                retry: retry
+            )
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: proxy.size.height)
+        }
+        .refreshable {
+            await sync()
+        }
     }
     #else
     FeedEmptyStateView(

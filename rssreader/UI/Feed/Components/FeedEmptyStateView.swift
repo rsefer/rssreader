@@ -23,14 +23,11 @@ struct FeedEmptyStateView: View {
                 Button("Retry", action: retry)
                     .buttonStyle(.bordered)
             } else {
-                Image(systemName: "checkmark.circle")
-                    .font(.largeTitle)
-                    .foregroundStyle(.green)
-                Text("All caught up!")
-                    .font(.headline)
-                Text("No unread articles.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+								Image(systemName: "checkmark.circle")
+									.font(.largeTitle)
+									.foregroundStyle(.green)
+								Text("No new items.")
+									.font(.headline)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -196,10 +196,16 @@ struct ContentView: View {
 
 private struct ContentViewPreviewContainer: View {
 
-	@StateObject private var service = AppBootstrap.makePreviewService(itemCount: 10)
+	@StateObject private var service: FreshRSSService
 	private let initialSelectedItemIDs: Set<String>
 
-	init(preselectDetail: Bool = false) {
+	init(preselectDetail: Bool = false, noItems: Bool = false) {
+		let previewService = AppBootstrap.makePreviewService(itemCount: 10)
+		if noItems {
+			previewService.items = []
+		}
+		_service = StateObject(wrappedValue: previewService)
+
 		if preselectDetail,
 			 let id = PreviewSampleData.firstItemID(itemCount: 10) {
 			initialSelectedItemIDs = [id]
@@ -229,5 +235,14 @@ private struct ContentViewPreviewContainer: View {
 		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
 	#else
 	ContentViewPreviewContainer(preselectDetail: true)
+	#endif
+}
+
+#Preview("ContentView - No Items") {
+	#if os(macOS)
+	ContentViewPreviewContainer(noItems: true)
+		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
+	#else
+	ContentViewPreviewContainer(noItems: true)
 	#endif
 }

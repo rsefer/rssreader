@@ -117,11 +117,8 @@ struct DetailView: View {
 						}
 					}
 
-					ToolbarItemGroup(placement: .primaryAction) {
-						ControlGroup {
-							DetailTabSwitcher(activeTab: $activeTab, hasWebURL: item.url != nil)
-						}
-
+					ToolbarItem(placement: .primaryAction) {
+						DetailTabSwitcher(activeTab: $activeTab, hasWebURL: item.url != nil)
 					}
 
 						ToolbarItemGroup(placement: itemActionsButtonsLocation) {

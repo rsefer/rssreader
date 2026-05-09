@@ -5,7 +5,17 @@ struct DetailTabSwitcher: View {
 	let hasWebURL: Bool
 
 	var body: some View {
-		HStack(spacing: 0) {
+		#if os(macOS)
+		Picker("", selection: $activeTab) {
+			ForEach(ContentTab.allCases, id: \.self) { tab in
+				Image(systemName: tab.icon)
+					.help(tab.rawValue)
+			}
+		}
+		.pickerStyle(.segmented)
+		.fixedSize()
+		#else
+		HStack(spacing: 8) {
 			ForEach(ContentTab.allCases, id: \.self) { tab in
 				Button {
 					activeTab = tab
@@ -26,5 +36,6 @@ struct DetailTabSwitcher: View {
 				.accessibilityLabel(tab.rawValue)
 			}
 		}
+		#endif
 	}
 }

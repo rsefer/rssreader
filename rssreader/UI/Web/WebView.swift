@@ -147,7 +147,7 @@ blockquote { border-color: #4a4a4f; color: #b3b3b8; }
 }
 }
 
-private class ExternalNavigationCoordinator: NSObject, WKNavigationDelegate {
+private class LinkNavigationCoordinator: NSObject, WKNavigationDelegate {
 var lastItemID = ""
 
 func shouldHandleExternalLink(for navigationAction: WKNavigationAction) -> Bool {
@@ -174,8 +174,8 @@ let source: Source
 /// A unique identifier so updates only reload when the source actually changes.
 let itemID: String
 
-func makeCoordinator() -> ExternalNavigationCoordinator {
-ExternalNavigationCoordinator()
+	func makeCoordinator() -> LinkNavigationCoordinator {
+		LinkNavigationCoordinator()
 }
 
 #if os(macOS)
@@ -206,7 +206,7 @@ webView.allowsMagnification = true
 return webView
 }
 
-private func loadSourceIfNeeded(on webView: WKWebView, coordinator: ExternalNavigationCoordinator) {
+	private func loadSourceIfNeeded(on webView: WKWebView, coordinator: LinkNavigationCoordinator) {
 guard coordinator.lastItemID != itemID else { return }
 coordinator.lastItemID = itemID
 
@@ -219,7 +219,7 @@ webView.loadHTMLString(html, baseURL: nil)
 }
 }
 
-extension ExternalNavigationCoordinator {
+extension LinkNavigationCoordinator {
 func webView(_ webView: WKWebView,
  decidePolicyFor navigationAction: WKNavigationAction,
  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -237,9 +237,9 @@ let url: URL
 let itemID: String
 let fallbackHTML: String?
 
-func makeCoordinator() -> ReaderCoordinator {
-ReaderCoordinator(url: url, fallbackHTML: fallbackHTML)
-}
+	func makeCoordinator() -> ReaderCoordinator {
+		ReaderCoordinator(url: url, fallbackHTML: fallbackHTML)
+	}
 
 #if os(macOS)
 func makeNSView(context: Context) -> WKWebView {
@@ -269,25 +269,30 @@ webView.allowsMagnification = true
 return webView
 }
 
-private func update(webView: WKWebView, coordinator: ReaderCoordinator) {
-coordinator.currentURL = url
-coordinator.fallbackHTML = fallbackHTML
-guard coordinator.lastItemID != itemID else { return }
+	private func update(webView: WKWebView, coordinator: ReaderCoordinator) {
+		coordinator.updateContext(url: url, fallbackHTML: fallbackHTML)
+		guard coordinator.lastItemID != itemID else { return }
 
 coordinator.lastItemID = itemID
 coordinator.didLoadReaderHTML = false
 webView.load(URLRequest(url: url))
 }
 
-final class ReaderCoordinator: ExternalNavigationCoordinator {
-var currentURL: URL
-var fallbackHTML: String?
-var didLoadReaderHTML = false
+	final class ReaderCoordinator: LinkNavigationCoordinator {
+		private(set) var currentURL: URL
+		private(set) var fallbackHTML: String?
+		var didLoadReaderHTML = false
 
-init(url: URL, fallbackHTML: String?) {
-self.currentURL = url
-self.fallbackHTML = fallbackHTML
-}
+		init(url: URL, fallbackHTML: String?) {
+			self.currentURL = url
+			self.fallbackHTML = fallbackHTML
+		}
+
+		func updateContext(url: URL, fallbackHTML: String?) {
+			guard currentURL != url || self.fallbackHTML != fallbackHTML else { return }
+			currentURL = url
+			self.fallbackHTML = fallbackHTML
+		}
 
 func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
 guard !didLoadReaderHTML else { return }

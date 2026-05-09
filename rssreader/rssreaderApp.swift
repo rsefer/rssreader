@@ -51,7 +51,7 @@ struct rssreaderApp: App {
 				Divider()
 			}
 		}
-			
+
 		#if os(macOS)
 		Settings {
 			SettingsView()
@@ -59,6 +59,6 @@ struct rssreaderApp: App {
 		}
 		.windowResizability(.contentSize)
 		#endif
-			
+
     }
 }

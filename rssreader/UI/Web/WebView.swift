@@ -165,118 +165,118 @@ return true
 /// Wraps WKWebView for use in SwiftUI.
 /// Supports loading either a remote URL or a local HTML string.
 struct WebView: PlatformViewRepresentable {
-enum Source: Equatable {
-case url(URL)
-case html(String)
-}
+    enum Source: Equatable {
+        case url(URL)
+        case html(String)
+    }
 
-let source: Source
-/// A unique identifier so updates only reload when the source actually changes.
-let itemID: String
+    let source: Source
+    /// A unique identifier so updates only reload when the source actually changes.
+    let itemID: String
 
     func makeCoordinator() -> LinkNavigationCoordinator {
         LinkNavigationCoordinator()
-}
+    }
 
-#if os(macOS)
-func makeNSView(context: Context) -> WKWebView {
-makeWebView(delegate: context.coordinator)
-}
+    #if os(macOS)
+    func makeNSView(context: Context) -> WKWebView {
+        makeWebView(delegate: context.coordinator)
+    }
 
-func updateNSView(_ webView: WKWebView, context: Context) {
-loadSourceIfNeeded(on: webView, coordinator: context.coordinator)
-}
-#else
-func makeUIView(context: Context) -> WKWebView {
-makeWebView(delegate: context.coordinator)
-}
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        loadSourceIfNeeded(on: webView, coordinator: context.coordinator)
+    }
+    #else
+    func makeUIView(context: Context) -> WKWebView {
+        makeWebView(delegate: context.coordinator)
+    }
 
-func updateUIView(_ webView: WKWebView, context: Context) {
-loadSourceIfNeeded(on: webView, coordinator: context.coordinator)
-}
-#endif
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        loadSourceIfNeeded(on: webView, coordinator: context.coordinator)
+    }
+    #endif
 
-private func makeWebView(delegate: WKNavigationDelegate) -> WKWebView {
-let config = WKWebViewConfiguration()
-let webView = WKWebView(frame: .zero, configuration: config)
-webView.navigationDelegate = delegate
-#if os(macOS)
-webView.allowsMagnification = true
-#endif
-return webView
-}
+    private func makeWebView(delegate: WKNavigationDelegate) -> WKWebView {
+        let config = WKWebViewConfiguration()
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = delegate
+        #if os(macOS)
+        webView.allowsMagnification = true
+        #endif
+        return webView
+    }
 
     private func loadSourceIfNeeded(on webView: WKWebView, coordinator: LinkNavigationCoordinator) {
-guard coordinator.lastItemID != itemID else { return }
-coordinator.lastItemID = itemID
+        guard coordinator.lastItemID != itemID else { return }
+        coordinator.lastItemID = itemID
 
-switch source {
-case .url(let url):
-webView.load(URLRequest(url: url))
-case .html(let html):
-webView.loadHTMLString(html, baseURL: nil)
-}
-}
+        switch source {
+        case .url(let url):
+            webView.load(URLRequest(url: url))
+        case .html(let html):
+            webView.loadHTMLString(html, baseURL: nil)
+        }
+    }
 }
 
 extension LinkNavigationCoordinator {
-func webView(_ webView: WKWebView,
- decidePolicyFor navigationAction: WKNavigationAction,
- decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-if shouldHandleExternalLink(for: navigationAction) {
-decisionHandler(.cancel)
-return
-}
-decisionHandler(.allow)
-}
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor navigationAction: WKNavigationAction,
+                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if shouldHandleExternalLink(for: navigationAction) {
+            decisionHandler(.cancel)
+            return
+        }
+        decisionHandler(.allow)
+    }
 }
 
 /// Loads a webpage, extracts the main content block, and renders a clean reader view.
 struct ReaderWebView: PlatformViewRepresentable {
-let url: URL
-let itemID: String
-let fallbackHTML: String?
+    let url: URL
+    let itemID: String
+    let fallbackHTML: String?
 
     func makeCoordinator() -> ReaderCoordinator {
         ReaderCoordinator(url: url, fallbackHTML: fallbackHTML)
     }
 
-#if os(macOS)
-func makeNSView(context: Context) -> WKWebView {
-makeWebView(delegate: context.coordinator)
-}
+    #if os(macOS)
+    func makeNSView(context: Context) -> WKWebView {
+        makeWebView(delegate: context.coordinator)
+    }
 
-func updateNSView(_ webView: WKWebView, context: Context) {
-update(webView: webView, coordinator: context.coordinator)
-}
-#else
-func makeUIView(context: Context) -> WKWebView {
-makeWebView(delegate: context.coordinator)
-}
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        update(webView: webView, coordinator: context.coordinator)
+    }
+    #else
+    func makeUIView(context: Context) -> WKWebView {
+        makeWebView(delegate: context.coordinator)
+    }
 
-func updateUIView(_ webView: WKWebView, context: Context) {
-update(webView: webView, coordinator: context.coordinator)
-}
-#endif
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        update(webView: webView, coordinator: context.coordinator)
+    }
+    #endif
 
-private func makeWebView(delegate: WKNavigationDelegate) -> WKWebView {
-let config = WKWebViewConfiguration()
-let webView = WKWebView(frame: .zero, configuration: config)
-webView.navigationDelegate = delegate
-#if os(macOS)
-webView.allowsMagnification = true
-#endif
-return webView
-}
+    private func makeWebView(delegate: WKNavigationDelegate) -> WKWebView {
+        let config = WKWebViewConfiguration()
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = delegate
+        #if os(macOS)
+        webView.allowsMagnification = true
+        #endif
+        return webView
+    }
 
     private func update(webView: WKWebView, coordinator: ReaderCoordinator) {
         coordinator.updateContext(url: url, fallbackHTML: fallbackHTML)
         guard coordinator.lastItemID != itemID else { return }
 
-coordinator.lastItemID = itemID
-coordinator.didLoadReaderHTML = false
-webView.load(URLRequest(url: url))
-}
+        coordinator.lastItemID = itemID
+        coordinator.didLoadReaderHTML = false
+        webView.load(URLRequest(url: url))
+    }
 
     final class ReaderCoordinator: LinkNavigationCoordinator {
         private(set) var currentURL: URL
@@ -294,33 +294,33 @@ webView.load(URLRequest(url: url))
             self.fallbackHTML = fallbackHTML
         }
 
-func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-guard !didLoadReaderHTML else { return }
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            guard !didLoadReaderHTML else { return }
 
-webView.evaluateJavaScript(ReaderContentExtractor.extractionScript) { [weak self, weak webView] result, _ in
-guard let self, let webView else { return }
+            webView.evaluateJavaScript(ReaderContentExtractor.extractionScript) { [weak self, weak webView] result, _ in
+                guard let self, let webView else { return }
 
-let extractedBody = (result as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-let extractedTextLength = ReaderContentExtractor.plainTextLength(fromHTML: extractedBody)
-let shouldUseExtracted = extractedTextLength >= ReaderContentExtractor.minimumExtractedTextLength
+                let extractedBody = (result as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let extractedTextLength = ReaderContentExtractor.plainTextLength(fromHTML: extractedBody)
+                let shouldUseExtracted = extractedTextLength >= ReaderContentExtractor.minimumExtractedTextLength
 
-self.didLoadReaderHTML = true
+                self.didLoadReaderHTML = true
 
-if shouldUseExtracted {
-let readerHTML = ReaderContentExtractor.readerHTML(body: extractedBody, sourceURL: self.currentURL)
-webView.loadHTMLString(readerHTML, baseURL: self.currentURL.deletingLastPathComponent())
-return
-}
+                if shouldUseExtracted {
+                    let readerHTML = ReaderContentExtractor.readerHTML(body: extractedBody, sourceURL: self.currentURL)
+                    webView.loadHTMLString(readerHTML, baseURL: self.currentURL.deletingLastPathComponent())
+                    return
+                }
 
-let fallbackBody = (self.fallbackHTML ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-if !fallbackBody.isEmpty {
-let readerHTML = ReaderContentExtractor.readerHTML(body: fallbackBody, sourceURL: self.currentURL)
-webView.loadHTMLString(readerHTML, baseURL: self.currentURL.deletingLastPathComponent())
-return
-}
-}
-}
-}
+                let fallbackBody = (self.fallbackHTML ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !fallbackBody.isEmpty {
+                    let readerHTML = ReaderContentExtractor.readerHTML(body: fallbackBody, sourceURL: self.currentURL)
+                    webView.loadHTMLString(readerHTML, baseURL: self.currentURL.deletingLastPathComponent())
+                    return
+                }
+            }
+        }
+    }
 }
 
 private func openExternalURL(_ url: URL) {

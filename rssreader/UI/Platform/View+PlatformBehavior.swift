@@ -97,6 +97,17 @@ extension View {
     }
 }
 
+extension ToolbarItemPlacement {
+    /// `.topBarLeading` on iOS, `.navigation` on macOS.
+    static var platformLeading: ToolbarItemPlacement {
+        #if os(iOS)
+        return .topBarLeading
+        #else
+        return .navigation
+        #endif
+    }
+}
+
 @ViewBuilder
 func platformFeedEmptyState(
     isLoading: Bool,

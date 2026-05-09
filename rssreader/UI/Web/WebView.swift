@@ -147,19 +147,23 @@ blockquote { border-color: #4a4a4f; color: #b3b3b8; }
 }
 }
 
-private class LinkNavigationCoordinator: NSObject, WKNavigationDelegate {
-var lastItemID = ""
+private class ExternalLinkNavigationCoordinator: NSObject, WKNavigationDelegate {
+    private(set) var lastItemID = ""
 
-func shouldHandleExternalLink(for navigationAction: WKNavigationAction) -> Bool {
-guard navigationAction.navigationType == .linkActivated,
-let url = navigationAction.request.url,
-!EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) else {
-return false
-}
+    func updateLastItemID(_ itemID: String) {
+        lastItemID = itemID
+    }
 
-openExternalURL(url)
-return true
-}
+    func shouldHandleExternalLink(for navigationAction: WKNavigationAction) -> Bool {
+        guard navigationAction.navigationType == .linkActivated,
+              let url = navigationAction.request.url,
+              !EmbeddedWebNavigationPolicy.shouldStayEmbedded(url) else {
+            return false
+        }
+
+        openExternalURL(url)
+        return true
+    }
 }
 
 /// Wraps WKWebView for use in SwiftUI.
@@ -174,8 +178,8 @@ struct WebView: PlatformViewRepresentable {
     /// A unique identifier so updates only reload when the source actually changes.
     let itemID: String
 
-    func makeCoordinator() -> LinkNavigationCoordinator {
-        LinkNavigationCoordinator()
+    func makeCoordinator() -> ExternalLinkNavigationCoordinator {
+        ExternalLinkNavigationCoordinator()
     }
 
     #if os(macOS)
@@ -206,9 +210,9 @@ struct WebView: PlatformViewRepresentable {
         return webView
     }
 
-    private func loadSourceIfNeeded(on webView: WKWebView, coordinator: LinkNavigationCoordinator) {
+    private func loadSourceIfNeeded(on webView: WKWebView, coordinator: ExternalLinkNavigationCoordinator) {
         guard coordinator.lastItemID != itemID else { return }
-        coordinator.lastItemID = itemID
+        coordinator.updateLastItemID(itemID)
 
         switch source {
         case .url(let url):
@@ -219,7 +223,7 @@ struct WebView: PlatformViewRepresentable {
     }
 }
 
-extension LinkNavigationCoordinator {
+extension ExternalLinkNavigationCoordinator {
     func webView(_ webView: WKWebView,
                  decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -238,7 +242,9 @@ struct ReaderWebView: PlatformViewRepresentable {
     let fallbackHTML: String?
 
     func makeCoordinator() -> ReaderCoordinator {
-        ReaderCoordinator(url: url, fallbackHTML: fallbackHTML)
+        let coordinator = ReaderCoordinator()
+        coordinator.updateContext(url: url, fallbackHTML: fallbackHTML)
+        return coordinator
     }
 
     #if os(macOS)
@@ -273,20 +279,15 @@ struct ReaderWebView: PlatformViewRepresentable {
         coordinator.updateContext(url: url, fallbackHTML: fallbackHTML)
         guard coordinator.lastItemID != itemID else { return }
 
-        coordinator.lastItemID = itemID
+        coordinator.updateLastItemID(itemID)
         coordinator.didLoadReaderHTML = false
         webView.load(URLRequest(url: url))
     }
 
-    final class ReaderCoordinator: LinkNavigationCoordinator {
-        private(set) var currentURL: URL
+    final class ReaderCoordinator: ExternalLinkNavigationCoordinator {
+        private(set) var currentURL = URL(string: "about:blank")!
         private(set) var fallbackHTML: String?
         var didLoadReaderHTML = false
-
-        init(url: URL, fallbackHTML: String?) {
-            self.currentURL = url
-            self.fallbackHTML = fallbackHTML
-        }
 
         func updateContext(url: URL, fallbackHTML: String?) {
             guard currentURL != url || self.fallbackHTML != fallbackHTML else { return }
@@ -298,8 +299,13 @@ struct ReaderWebView: PlatformViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             guard !didLoadReaderHTML else { return }
 
-            webView.evaluateJavaScript(ReaderContentExtractor.extractionScript) { [weak self, weak webView] result, _ in
+            webView.evaluateJavaScript(ReaderContentExtractor.extractionScript) { [weak self, weak webView] result, error in
                 guard let self, let webView else { return }
+                #if DEBUG
+                if let error {
+                    debugPrint("Reader extraction script failed:", error)
+                }
+                #endif
 
                 let extractedBody = (result as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let extractedTextLength = ReaderContentExtractor.plainTextLength(fromHTML: extractedBody)
@@ -325,9 +331,9 @@ struct ReaderWebView: PlatformViewRepresentable {
 }
 
 private func openExternalURL(_ url: URL) {
-#if os(macOS)
-NSWorkspace.shared.open(url)
-#else
-UIApplication.shared.open(url)
-#endif
+    #if os(macOS)
+    NSWorkspace.shared.open(url)
+    #else
+    UIApplication.shared.open(url)
+    #endif
 }

@@ -51,5 +51,14 @@ struct rssreaderApp: App {
 				Divider()
 			}
 		}
+			
+		#if os(macOS)
+		Settings {
+			SettingsView()
+				.environmentObject(service)
+		}
+		.windowResizability(.contentSize)
+		#endif
+			
     }
 }

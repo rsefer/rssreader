@@ -27,7 +27,7 @@ struct SettingsView: View {
     var body: some View {
 #if os(macOS)
         settingsTabs
-        .frame(width: 620, height: 500)
+            .frame(minWidth: 700, minHeight: 520)
         .onAppear {
             url      = service.serverURL
             username = service.username

@@ -12,6 +12,9 @@ struct ContentView: View {
 	@Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+	#if os(macOS)
+	@Environment(\.openSettings) private var openSettings
+	#endif
     @EnvironmentObject var service: FreshRSSService
 	@StateObject private var logic: ContentLogic
 	@State private var splitColumnVisibility: NavigationSplitViewVisibility = .all
@@ -61,7 +64,7 @@ struct ContentView: View {
 			NavigationStack {
 					FeedView(
 							selectedItemIDs: $logic.selectedItemIDs,
-							openSettings: { logic.openSettings() }
+							openSettings: { presentSettings() }
 					)
 					.navigationDestination(isPresented: isDetailPresented) {
 							detailContent(isSidebarVisible: false)
@@ -75,7 +78,7 @@ struct ContentView: View {
 			NavigationSplitView(columnVisibility: $splitColumnVisibility) {
 					FeedView(
 							selectedItemIDs: $logic.selectedItemIDs,
-							openSettings: { logic.openSettings() }
+							openSettings: { presentSettings() }
 					)
 					.navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 420)
 			} detail: {
@@ -106,7 +109,7 @@ struct ContentView: View {
 			NavigationSplitView {
 					FeedView(
 							selectedItemIDs: $logic.selectedItemIDs,
-							openSettings: { logic.openSettings() }
+							openSettings: { presentSettings() }
 					)
 			} detail: {
 					detailContent(isSidebarVisible: false)
@@ -141,14 +144,22 @@ struct ContentView: View {
 	@ViewBuilder
 	private func detailContent(isSidebarVisible: Bool) -> some View {
 			if let item = selectedItem {
-					DetailView(item: item, openSettings: { logic.openSettings() }, isSidebarVisible: isSidebarVisible)
+					DetailView(item: item, openSettings: { presentSettings() }, isSidebarVisible: isSidebarVisible)
 							.environmentObject(service)
 			} else {
 					EmptyDetailPlaceholderView(
 							isConfigured: service.isConfigured,
-							openSettings: { logic.openSettings() }
+							openSettings: { presentSettings() }
 					)
 			}
+	}
+
+	private func presentSettings() {
+		#if os(macOS)
+		openSettings()
+		#else
+		logic.openSettings()
+		#endif
 	}
 
 	private func isTextFieldFocused() -> Bool {
@@ -172,10 +183,12 @@ struct ContentView: View {
 					.onReceive(NotificationCenter.default.publisher(for: .navigateToNextItem)) { _ in
 							selectNext()
 					}
+					#if os(iOS)
 					.platformSettingsPresentation(isPresented: $logic.showSettings) {
 							SettingsView()
 									.environmentObject(service)
 					}
+					#endif
 					.onChange(of: logic.selectedItemIDs, initial: false) { _, _ in
 							logic.markSelectionAsReadIfNeeded(using: service, items: service.items)
 					}

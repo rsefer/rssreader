@@ -35,6 +35,15 @@ struct ConnectionSettingsTabView: View {
                     SecureField("", text: $password)
                         .textFieldStyle(.roundedBorder)
                 }
+
+                HStack {
+                    Spacer()
+
+                    Button("Save", action: saveAndDismiss)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(url.isEmpty || username.isEmpty || password.isEmpty)
+                        .keyboardShortcut(.return, modifiers: .command)
+                }
             } header: {
                 Text("FreshRSS Connection")
                     .font(.headline)
@@ -45,6 +54,22 @@ struct ConnectionSettingsTabView: View {
             }
 
             Section("Diagnostics") {
+                HStack {
+                    Button(isTesting ? "Testing..." : "Test Connection") {
+                        Task { await testConnection() }
+                    }
+                    .disabled(isTesting || url.isEmpty || username.isEmpty || password.isEmpty)
+
+                    if isTesting {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    }
+
+                    if let testResult {
+                        resultLabel(testResult)
+                    }
+                }
+
                 LabeledContent("Normalized URL") {
                     Text(service.normalizedServerURL.isEmpty ? "-" : service.normalizedServerURL)
                         .font(.caption)
@@ -77,31 +102,6 @@ struct ConnectionSettingsTabView: View {
                     if let dnsResult {
                         resultLabel(dnsResult)
                     }
-                }
-            }
-
-            Section {
-                HStack {
-                    Button(isTesting ? "Testing..." : "Test Connection") {
-                        Task { await testConnection() }
-                    }
-                    .disabled(isTesting || url.isEmpty || username.isEmpty || password.isEmpty)
-
-                    if isTesting {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                    }
-
-                    if let testResult {
-                        resultLabel(testResult)
-                    }
-
-                    Spacer()
-
-                    Button("Save", action: saveAndDismiss)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(url.isEmpty || username.isEmpty || password.isEmpty)
-                        .keyboardShortcut(.return, modifiers: .command)
                 }
             }
         }

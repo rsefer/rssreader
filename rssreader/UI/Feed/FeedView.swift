@@ -112,7 +112,7 @@ struct FeedView: View {
         }
         .searchable(text: $searchText, placement: .toolbar, prompt: "Search articles")
         .toolbar {
-            ToolbarItemGroup(placement: .navigation) {
+            ToolbarItemGroup(placement: .topBarLeading) {
 								OpenSettingsButton(openSettings: openSettings)
             }
             ToolbarItemGroup(placement: .primaryAction) {

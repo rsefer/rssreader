@@ -111,7 +111,7 @@ struct DetailView: View {
 				.toolbar {
 
 					if shouldShowGlobalButtonsToolbarItemGroup {
-						ToolbarItemGroup(placement: .navigation) {
+						ToolbarItemGroup(placement: .topBarLeading) {
 							GlobalActionsButtons(openSettings: openSettings)
 								.environmentObject(service)
 						}

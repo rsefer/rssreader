@@ -98,11 +98,13 @@ struct ContentView: View {
 					return false
 			}
 
-			let screenWidth = UIScreen.main.bounds.width
-			return detailWidth < (screenWidth - 40)
-			#else
-			false
-			#endif
+		let screenWidth = UIApplication.shared.connectedScenes
+			.compactMap { ($0 as? UIWindowScene)?.screen }
+			.first?.bounds.width ?? 0
+		return detailWidth < (screenWidth - 40)
+		#else
+		false
+		#endif
 	}
 
 	private var macNavigation: some View {

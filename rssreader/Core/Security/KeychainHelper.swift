@@ -104,13 +104,9 @@ public struct KeychainHelper {
         ]
 
         if !allowUserInteraction {
-    #if os(macOS)
-            query[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUIFail
-    #else
             let context = LAContext()
             context.interactionNotAllowed = true
             query[kSecUseAuthenticationContext as String] = context
-    #endif
         }
 
         var result: AnyObject?

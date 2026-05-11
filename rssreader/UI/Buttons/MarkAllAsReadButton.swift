@@ -7,7 +7,7 @@ struct MarkAllAsReadButton: View {
 		Button {
 				Task { await service.markAllAsRead() }
 		} label: {
-				Label("Mark All as Read", systemImage: "checkmark.circle")
+				Label("Mark All as Read", systemImage: "checkmark.rectangle.stack")
 		}
 		.help("Mark All as Read")
 		.disabled(service.unreadCount == 0 || service.isLoading)

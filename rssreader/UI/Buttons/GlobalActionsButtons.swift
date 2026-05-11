@@ -5,11 +5,10 @@ struct GlobalActionsButtons: View {
 	let openSettings: () -> Void
 
 	var body: some View {
+		OpenSettingsButton(openSettings: openSettings)
 		SyncButton()
 			.environmentObject(service)
 		MarkAllAsReadButton()
 			.environmentObject(service)
-		OpenSettingsButton(openSettings: openSettings)
-		
 	}
 }

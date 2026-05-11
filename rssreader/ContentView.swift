@@ -113,6 +113,7 @@ struct ContentView: View {
 							selectedItemIDs: $logic.selectedItemIDs,
 							openSettings: { presentSettings() }
 					)
+					.frame(minWidth: 300)
 			} detail: {
 					detailContent(isSidebarVisible: false)
 			}

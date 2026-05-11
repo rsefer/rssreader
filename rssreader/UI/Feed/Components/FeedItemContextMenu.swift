@@ -25,14 +25,14 @@ struct FeedItemContextMenu: View {
 					Button {
 							Task { await service.markAsRead(contextItems) }
 					} label: {
-							Label(isBatch ? "Mark Selection as Read" : "Mark as Read", systemImage: "checkmark.circle")
+							Label(isBatch ? "Mark Selection as Read" : "Mark as Read", systemImage: "checkmark.rectangle.stack")
 					}
 					.disabled(!anyUnread)
 
 					Button {
 							Task { await service.markAsUnread(contextItems) }
 					} label: {
-							Label(isBatch ? "Mark Selection as Unread" : "Mark as Unread", systemImage: "circle.dotted")
+							Label(isBatch ? "Mark Selection as Unread" : "Mark as Unread", systemImage: "circle.dotted.and.circle")
 					}
 					.disabled(!anyRead)
 					

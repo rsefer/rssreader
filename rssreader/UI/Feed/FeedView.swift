@@ -6,6 +6,14 @@ struct FeedView: View {
     let openSettings: () -> Void
     @State private var searchText = ""
 
+	private var searchFieldPlacement: SearchFieldPlacement {
+		#if os(macOS)
+		return .sidebar
+		#else
+		return .toolbar
+		#endif
+	}
+
     private var selectedSubscription: FeedSubscription? {
         guard let id = service.selectedSubscriptionID else { return nil }
         return service.subscriptions.first { $0.id == id }
@@ -20,70 +28,6 @@ struct FeedView: View {
         }
     }
 
-	@ViewBuilder
-	var feedSubscriptionMenuDisplay: some View {
-		if !service.subscriptions.isEmpty {
-			FeedSubscriptionMenu(
-					subscriptions: service.subscriptions,
-					selectedSubscriptionID: service.selectedSubscriptionID,
-					selectedTitle: selectedSubscription?.title ?? "All Feeds",
-					onSelectAll: { service.selectedSubscriptionID = nil },
-					onSelect: { service.selectedSubscriptionID = $0 }
-			)
-		}
-	}
-
-	@ViewBuilder
-	var feedMainListDisplay: some View {
-		if service.items.isEmpty && !service.isLoading {
-				platformFeedEmptyState(
-						isLoading: service.isLoading,
-						errorMessage: service.errorMessage,
-						retry: { Task { await service.authenticate() } },
-						sync: { await service.syncCurrentMode() }
-				)
-		} else {
-				List(selection: $selectedItemIDs) {
-						Section {
-								ForEach(displayedItems) { item in
-                                        let isRead = service.isMarkedRead(item)
-										FeedItemRow(
-												item: item,
-                                                isRead: isRead,
-												loadImages: service.loadArticleImages,
-												thumbnailSize: CGFloat(service.articleThumbnailSize),
-												thumbnailAspectRatio: service.articleThumbnailAspectRatio,
-												thumbnailDisplayMode: service.thumbnailDisplayMode
-										)
-										.tag(item.id)
-										.contextMenu {
-												FeedItemContextMenu(
-														item: item,
-														contextItems: contextSelection(for: item),
-														onOpen: { selectedItemIDs = [item.id] }
-												)
-										}
-										#if os(iOS)
-										.swipeActions(edge: .trailing, allowsFullSwipe: true) {
-											ToggleItemReadStatusButton(item: item)
-												.environmentObject(service)
-												.tint(isRead ? .orange : .blue)
-										}
-										#endif
-								}
-						}
-						#if os(iOS)
-						.listSectionSeparator(.hidden, edges: .top)
-						#endif
-				}
-				.platformFeedListStyle()
-				.platformFeedListRefreshable {
-						await service.syncCurrentMode()
-				}
-		}
-	}
-
-
     var body: some View {
         platformContent
             .onChange(of: service.sidebarMode, initial: false) { _, _ in
@@ -97,72 +41,106 @@ struct FeedView: View {
 
     @ViewBuilder
     private var platformContent: some View {
-        #if os(iOS)
-        Group {
-            feedMainListDisplay
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                FeedModePicker(sidebarMode: $service.sidebarMode)
-                feedSubscriptionMenuDisplay
-                Divider()
-            }
-            .background(Color(.systemBackground))
-        }
-        .searchable(text: $searchText, placement: .toolbar, prompt: "Search articles")
-        .toolbar {
-            ToolbarItemGroup(placement: .platformLeading) {
-								OpenSettingsButton(openSettings: openSettings)
-            }
-            ToolbarItemGroup(placement: .primaryAction) {
-                MarkAllAsReadButton()
-                    .environmentObject(service)
-								SyncButton()
-										.environmentObject(service)
-            }
-        }
-        #elseif os(macOS)
-        VStack(spacing: 0) {
-            FeedModePicker(sidebarMode: $service.sidebarMode)
-            feedSubscriptionMenuDisplay
-            macSearchBar
-            feedMainListDisplay
-            FeedSidebarFooterView(
-                statusText: service.isAuthenticated ? countLabel : "Not connected",
-                openSettings: openSettings
-            )
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(.background)
-        .navigationTitle("")
-        #endif
-    }
+			VStack(spacing: 0) {
+				HStack(spacing: 8) {
+					FeedModePicker(sidebarMode: $service.sidebarMode)
+						.frame(maxWidth: .infinity)
+					#if os(macOS)
+						.padding(.top, 4)
+					#endif
+					if !service.subscriptions.isEmpty {
+						RSSFeedFilterButton(
+							subscriptions: service.subscriptions,
+							selectedSubscriptionID: service.selectedSubscriptionID,
+							selectedTitle: selectedSubscription?.title ?? "All Feeds",
+							onSelectAll: { service.selectedSubscriptionID = nil },
+							onSelect: { service.selectedSubscriptionID = $0 }
+						)
+							.labelStyle(.iconOnly)
+							.buttonStyle(.borderless)
+					}
+				}
+				.frame(maxWidth: .infinity, alignment: .leading)
+				.padding(.horizontal, 16)
+				.padding(.bottom, 12)
+				if ((service.selectedSubscriptionID) != nil) {
+					Text(selectedSubscription?.title ?? " ")
+						.font(.caption)
+						.multilineTextAlignment(.center)
+						.padding(.bottom, 12)
+				}
+				FeedCountsView()
+					.environmentObject(service)
+					.padding(.bottom, 12)
+				Divider()
+				Group {
+					if service.items.isEmpty && !service.isLoading {
+							platformFeedEmptyState(
+									isLoading: service.isLoading,
+									errorMessage: service.errorMessage,
+									retry: { Task { await service.authenticate() } },
+									sync: { await service.syncCurrentMode() }
+							)
+					} else {
+							List(selection: $selectedItemIDs) {
+									Section {
+											ForEach(displayedItems) { item in
+																							let isRead = service.isMarkedRead(item)
+													FeedItemRow(
+															item: item,
+																											isRead: isRead,
+															loadImages: service.loadArticleImages,
+															thumbnailSize: CGFloat(service.articleThumbnailSize),
+															thumbnailAspectRatio: service.articleThumbnailAspectRatio,
+															thumbnailDisplayMode: service.thumbnailDisplayMode
+													)
+													.tag(item.id)
+													.contextMenu {
+															FeedItemContextMenu(
+																	item: item,
+																	contextItems: contextSelection(for: item),
+																	onOpen: { selectedItemIDs = [item.id] }
+															)
+													}
+													#if os(iOS)
+													.swipeActions(edge: .trailing, allowsFullSwipe: true) {
+														ToggleItemReadStatusButton(item: item)
+															.environmentObject(service)
+															.tint(isRead ? .orange : .blue)
+													}
+													#endif
+											}
+									}
+									#if os(iOS)
+									.listSectionSeparator(.hidden, edges: .top)
+									#endif
+							}
+							.padding(.top, (service.selectedSubscriptionID) == nil ? 8 : 0)
+							.platformFeedListStyle()
+							.platformFeedListRefreshable {
+									await service.syncCurrentMode()
+							}
+					}
+				}.searchable(text: $searchText, placement: searchFieldPlacement, prompt: "Search articles")
+			}
+			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+			.background(.background)
+			.navigationTitle("")
+			#if os(iOS)
+			.toolbar {
+				ToolbarItemGroup(placement: .navigation) {
+					OpenSettingsButton(openSettings: openSettings)
+				}
+				ToolbarItemGroup(placement: .bottomBar) {
+					SyncButton()
+						.environmentObject(service)
+					Spacer()
+					MarkAllAsReadButton()
+						.environmentObject(service)
+				}
+			}
+			#endif
 
-    @ViewBuilder
-    private var macSearchBar: some View {
-        #if os(macOS)
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .font(.system(size: 12))
-            TextField("Search articles", text: $searchText)
-                .textFieldStyle(.plain)
-                .font(.system(size: 13))
-            if !searchText.isEmpty {
-                Button { searchText = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7))
-        .padding(.horizontal, 8)
-        .padding(.bottom, 4)
-        #endif
     }
 
     private var countLabel: String {
@@ -203,15 +181,23 @@ struct FeedView: View {
 
 private struct FeedViewPreviewContainer: View {
     @State private var selectedItemIDs: Set<String>
-	@StateObject private var service = AppBootstrap.makePreviewService(itemCount: 10)
+	@StateObject private var service: FreshRSSService
 
-	init(preselectItem: Bool = false) {
+	init(preselectItem: Bool = false, preselectFeed: Bool = false) {
+		let previewService = AppBootstrap.makePreviewService(itemCount: 10)
+
 		if preselectItem,
 			 let firstID = PreviewSampleData.firstItemID(itemCount: 10) {
 			_selectedItemIDs = State(initialValue: [firstID])
 		} else {
 			_selectedItemIDs = State(initialValue: [])
 		}
+
+		if preselectFeed {
+			previewService.selectedSubscriptionID = previewService.items.first?.subscriptionID
+		}
+
+		_service = StateObject(wrappedValue: previewService)
 	}
 
     var body: some View {
@@ -240,5 +226,14 @@ private struct FeedViewPreviewContainer: View {
 		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
 	#else
 	FeedViewPreviewContainer(preselectItem: true)
+	#endif
+}
+
+#Preview("FeedView - First Feed Selected") {
+	#if os(macOS)
+	FeedViewPreviewContainer(preselectFeed: true)
+		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
+	#else
+	FeedViewPreviewContainer(preselectFeed: true)
 	#endif
 }

@@ -24,8 +24,5 @@ struct FeedModePicker: View {
             }
         }
         .pickerStyle(.segmented)
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 6)
     }
 }

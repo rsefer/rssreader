@@ -190,7 +190,7 @@ struct DetailView: View {
 				VStack(spacing: 0) {
 						if isURLBarVisible {
 								urlBar
-								.transition(.move(edge: .top).combined(with: .opacity))
+										.transition(.move(edge: .top).combined(with: .opacity))
 								Divider()
 						}
 

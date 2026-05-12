@@ -4,8 +4,8 @@ struct OpenSettingsButton: View {
 	let openSettings: () -> Void
 
 	var body: some View {
-		Button(action: openSettings) {
-				Image(systemName: "gearshape")
+		Button("Settings", systemImage: "gearshape") {
+			openSettings()
 		}
 		.help("Settings")
 		

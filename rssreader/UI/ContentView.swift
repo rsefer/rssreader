@@ -154,6 +154,7 @@ struct ContentView: View {
 							isConfigured: service.isConfigured,
 							openSettings: { presentSettings() }
 					)
+						.environmentObject(service)
 			}
 	}
 

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct EmptyDetailPlaceholderView: View {
+		@EnvironmentObject private var service: FreshRSSService
     let isConfigured: Bool
     let openSettings: () -> Void
 
@@ -20,5 +21,17 @@ struct EmptyDetailPlaceholderView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+				.toolbar {
+					#if os(macOS)
+					if (isConfigured) {
+						ToolbarItemGroup(placement: .platformLeading) {
+							GlobalActionsButtons(openSettings: openSettings)
+								.environmentObject(service)
+						}
+					}
+					#else
+					EmptyView()
+					#endif
+				}
     }
 }

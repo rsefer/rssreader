@@ -18,10 +18,10 @@
           "image-name" : "SVG Image.svg",
           "name" : "SVG Image",
           "position" : {
-            "scale" : 1.5,
+            "scale" : 1.25,
             "translation-in-points" : [
-              0,
-              0
+              12,
+              -12
             ]
           }
         }

@@ -147,7 +147,7 @@ blockquote { border-color: #4a4a4f; color: #b3b3b8; }
 }
 }
 
-private class ExternalLinkNavigationCoordinator: NSObject, WKNavigationDelegate {
+class ExternalLinkNavigationCoordinator: NSObject, WKNavigationDelegate {
     private(set) var lastItemID = ""
 
     func updateLastItemID(_ itemID: String) {

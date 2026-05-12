@@ -215,10 +215,13 @@ private struct ContentViewPreviewContainer: View {
 	@StateObject private var service: FreshRSSService
 	private let initialSelectedItemIDs: Set<String>
 
-	init(preselectDetail: Bool = false, noItems: Bool = false) {
+	init(preselectDetail: Bool = false, noItems: Bool = false, isRefreshingList: Bool = false) {
 		let previewService = AppBootstrap.makePreviewService(itemCount: 10)
 		if noItems {
 			previewService.items = []
+		}
+		if isRefreshingList {
+			previewService.isLoading = true
 		}
 		_service = StateObject(wrappedValue: previewService)
 
@@ -260,5 +263,14 @@ private struct ContentViewPreviewContainer: View {
 		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
 	#else
 	ContentViewPreviewContainer(noItems: true)
+	#endif
+}
+
+#Preview("ContentView - No Items with List Refreshing") {
+	#if os(macOS)
+	ContentViewPreviewContainer(noItems: true, isRefreshingList: true)
+		.frame(width: PreviewSampleData.previewFrame.width, height: PreviewSampleData.previewFrame.height)
+	#else
+	ContentViewPreviewContainer(noItems: true, isRefreshingList: true)
 	#endif
 }

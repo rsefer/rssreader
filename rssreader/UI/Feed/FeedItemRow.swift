@@ -41,10 +41,8 @@ struct FeedItemRow: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 0)
-									if (!isRead) {
-										UnreadStatusIndicator()
+										UnreadStatusIndicator(status: isRead)
 											.padding(.top, 4)
-									}
                 }
 
                 HStack(alignment: .center, spacing: 6) {
@@ -95,9 +93,10 @@ private struct FeedRowThumbnail: View {
 }
 
 private struct UnreadStatusIndicator: View {
+		let status: Bool
     var body: some View {
         Circle()
-            .fill(Color.accentColor)
+				.fill(status ? Color.clear : Color.accentColor)
             .frame(width: 8, height: 8)
             .accessibilityHidden(true)
     }

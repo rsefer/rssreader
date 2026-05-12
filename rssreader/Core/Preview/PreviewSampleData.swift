@@ -35,7 +35,7 @@ enum PreviewSampleData {
 
             return FeedItem(
                 id: "tag:google.com,2005:reader/item/preview-\(index + 1)",
-                title: "Preview Item \(index + 1): SwiftUI Canvas Sample",
+                title: "Preview Item \(index + 1): SwiftUI Canvas Sample Data for RSS Reader App Development",
                 publication: subscription.title,
                 author: author,
                 url: articleURL,

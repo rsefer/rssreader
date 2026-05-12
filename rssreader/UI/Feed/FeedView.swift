@@ -143,25 +143,6 @@ struct FeedView: View {
 
     }
 
-    private var countLabel: String {
-        let totalCount = service.items.count
-        let unreadCount = service.unreadCount
-
-        if totalCount == 0 {
-            switch service.sidebarMode {
-            case .new:
-                return "No new items, 0 unread"
-            case .today:
-                return "No items today, 0 unread"
-            case .archive:
-                return "No archived items, 0 unread"
-            }
-        }
-
-        let itemLabel = totalCount == 1 ? "item" : "items"
-        return "\(totalCount) \(itemLabel) • \(unreadCount) unread"
-    }
-
     private func matchesSearch(_ item: FeedItem, query: String) -> Bool {
         item.title.lowercased().contains(query) ||
         item.publication.lowercased().contains(query) ||

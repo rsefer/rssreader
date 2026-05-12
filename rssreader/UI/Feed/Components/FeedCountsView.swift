@@ -17,11 +17,11 @@ struct FeedCountsView: View {
 		if totalCount == 0 {
 			switch service.sidebarMode {
 			case .new:
-				return "No new items, 0 unread"
+				return "No new items"
 			case .today:
-				return "No items today, 0 unread"
+				return "No items today"
 			case .archive:
-				return "No archived items, 0 unread"
+				return "No archived items"
 			}
 		}
 

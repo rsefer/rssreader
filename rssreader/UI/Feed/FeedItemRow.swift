@@ -22,7 +22,7 @@ struct FeedItemRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
             FeedRowThumbnail(
                 primaryURL: primaryThumbnailURL,
                 fallbackURL: fallbackThumbnailURL,
@@ -32,7 +32,7 @@ struct FeedItemRow: View {
                 displayMode: thumbnailDisplayMode
             )
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top, spacing: 8) {
                     Text(item.title)
                         .font(.system(size: 13, weight: .medium))
@@ -40,7 +40,7 @@ struct FeedItemRow: View {
                         .lineLimit(4)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Spacer(minLength: 0)
+                    Spacer(minLength: 2)
 										UnreadStatusIndicator(status: isRead)
 											.padding(.top, 4)
                 }
@@ -55,13 +55,13 @@ struct FeedItemRow: View {
 									Text(item.timeAgo)
 											.font(.caption2)
 											.foregroundStyle(.quaternary)
-
-    //                FormatBadge(format: item.format)
                 }
             }
         }
-        .padding(.vertical, 3)
-        .opacity(isRead ? 0.72 : 1)
+					#if os(macOS)
+					.padding(.vertical, 8)
+					#endif
+					.opacity(isRead ? 0.7 : 1)
     }
 }
 

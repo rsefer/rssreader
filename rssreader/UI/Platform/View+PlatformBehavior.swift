@@ -95,7 +95,7 @@ extension View {
     @ViewBuilder
     func platformFeedListStyle() -> some View {
         #if os(iOS)
-        self.listStyle(.plain)
+			self.listStyle(.plain)
         #else
         self.listStyle(.sidebar)
         #endif

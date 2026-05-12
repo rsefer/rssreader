@@ -5,6 +5,8 @@ struct FeedView: View {
     @Binding var selectedItemIDs: Set<String>
     let openSettings: () -> Void
     @State private var searchText = ""
+    @State private var visibleCount = 50
+    private static let pageSize = 50
 
 	private var searchFieldPlacement: SearchFieldPlacement {
 		#if os(macOS)
@@ -28,14 +30,21 @@ struct FeedView: View {
         }
     }
 
+    private var visibleItems: [FeedItem] {
+        Array(displayedItems.prefix(visibleCount))
+    }
+
     var body: some View {
         platformContent
             .onChange(of: service.sidebarMode, initial: false) { _, _ in
+                visibleCount = Self.pageSize
                 Task { @MainActor in
                     selectedItemIDs.removeAll()
                     await service.syncCurrentMode()
                 }
             }
+            .onChange(of: searchText) { _, _ in visibleCount = Self.pageSize }
+            .onChange(of: service.selectedSubscriptionID) { _, _ in visibleCount = Self.pageSize }
             .platformFeedStatusToolbar(errorMessage: service.errorMessage)
     }
 
@@ -84,7 +93,7 @@ struct FeedView: View {
 					} else {
 							List(selection: $selectedItemIDs) {
 									Section {
-											ForEach(displayedItems) { item in
+											ForEach(visibleItems) { item in
 																							let isRead = service.isMarkedRead(item)
 													FeedItemRow(
 															item: item,
@@ -109,6 +118,11 @@ struct FeedView: View {
 															.tint(isRead ? .orange : .blue)
 													}
 													#endif
+													.onAppear {
+														if item.id == visibleItems.last?.id && visibleCount < displayedItems.count {
+															visibleCount += Self.pageSize
+														}
+													}
 											}
 									}
 									#if os(iOS)

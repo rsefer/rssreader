@@ -2,6 +2,17 @@ import SwiftUI
 
 extension View {
     @ViewBuilder
+    func platformRefreshable(_ action: @escaping () async -> Void) -> some View {
+        #if os(iOS)
+        self.refreshable {
+            await action()
+        }
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder
     func platformSettingsPresentation<Content: View>(
         isPresented: Binding<Bool>,
         @ViewBuilder content: @escaping () -> Content
@@ -19,13 +30,7 @@ extension View {
 
     @ViewBuilder
     func platformFeedListRefreshable(_ action: @escaping () async -> Void) -> some View {
-        #if os(iOS)
-        self.refreshable {
-            await action()
-        }
-        #else
-        self
-        #endif
+        platformRefreshable(action)
     }
 
     @ViewBuilder
@@ -126,9 +131,7 @@ func platformFeedEmptyState(
             .frame(maxWidth: .infinity)
             .frame(minHeight: proxy.size.height)
         }
-        .refreshable {
-            await sync()
-        }
+        .platformRefreshable(sync)
     }
     #else
     FeedEmptyStateView(

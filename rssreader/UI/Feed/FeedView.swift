@@ -45,6 +45,10 @@ struct FeedView: View {
         Array(displayedItems.prefix(visibleCount))
     }
 
+	private var animatedDisplayState: (String?, Bool, Bool) {
+		(service.selectedSubscriptionID, service.items.isEmpty, service.isLoading)
+	}
+
     var body: some View {
         platformContent
             .onChange(of: service.sidebarMode, initial: false) { _, _ in
@@ -149,9 +153,7 @@ struct FeedView: View {
 							.transition(.opacity)
 					}
 				}
-					.animation(.easeInOut(duration: 0.2), value: service.selectedSubscriptionID)
-					.animation(.easeInOut(duration: 0.2), value: service.items.isEmpty)
-					.animation(.easeInOut(duration: 0.2), value: service.isLoading)
+					.animation(.easeInOut(duration: 0.2), value: animatedDisplayState)
 					.searchable(text: $searchText, placement: searchFieldPlacement, prompt: "Search articles")
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

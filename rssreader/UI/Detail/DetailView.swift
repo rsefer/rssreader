@@ -76,6 +76,10 @@ struct DetailView: View {
 				#endif
 		}
 
+		private var urlBarAnimationState: (Bool, String?) {
+				(isURLBarVisible, urlFieldError)
+		}
+
 		var body: some View {
 				VStack(spacing: 0) {
 						// ── Header ──────────────────────────────────────────────────────────
@@ -241,8 +245,7 @@ struct DetailView: View {
 								}
 						}
 				}
-				.animation(.easeInOut(duration: 0.2), value: isURLBarVisible)
-				.animation(.easeInOut(duration: 0.2), value: urlFieldError)
+				.animation(.easeInOut(duration: 0.2), value: urlBarAnimationState)
 				.padding(.horizontal, 12)
 				.padding(.vertical, 10)
 				.background(.bar)

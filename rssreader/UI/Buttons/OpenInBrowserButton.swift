@@ -12,11 +12,9 @@ struct OpenInBrowserButton: View {
 
     var body: some View {
 			if let url = item.url {
-				Button {
+				Button("Open in Browser", systemImage: "safari") {
 					onOpen?()
 					openURL(url)
-				} label: {
-					Label("Open in Browser", systemImage: "safari")
 				}
 				.help("Open in Browser")
 			} else {

@@ -6,7 +6,7 @@ struct DetailTabSwitcher: View {
 
 	var body: some View {
 		#if os(macOS)
-		Picker("", selection: $activeTab) {
+		Picker("Mode", selection: $activeTab) {
 			ForEach(ContentTab.allCases, id: \.self) { tab in
 				Image(systemName: tab.icon)
 					.help(tab.rawValue)

@@ -23,6 +23,7 @@ struct FeedModePicker: View {
                 Text(mode.rawValue).tag(mode)
             }
         }
+				.help("Feed Mode")
         .pickerStyle(.segmented)
     }
 }

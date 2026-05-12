@@ -65,7 +65,7 @@ extension View {
         self.background {
             #if os(macOS)
             if let url {
-                Button("") { openURL(url) }
+                Button("Open Selected Item") { openURL(url) }
                     .keyboardShortcut(.return, modifiers: .command)
                     .hidden()
             }

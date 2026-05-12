@@ -18,6 +18,7 @@ struct ContentView: View {
     @EnvironmentObject var service: FreshRSSService
 	@StateObject private var logic: ContentLogic
 	@State private var splitColumnVisibility: NavigationSplitViewVisibility = .all
+	@State private var macSplitColumnVisibility: NavigationSplitViewVisibility = .all
 
 	init(initialSelectedItemIDs: Set<String> = []) {
 		_logic = StateObject(wrappedValue: ContentLogic(initialSelectedItemIDs: initialSelectedItemIDs))
@@ -64,7 +65,8 @@ struct ContentView: View {
 			NavigationStack {
 					FeedView(
 							selectedItemIDs: $logic.selectedItemIDs,
-							openSettings: { presentSettings() }
+							openSettings: { presentSettings() },
+							isSidebarVisible: false
 					)
 					.navigationDestination(isPresented: isDetailPresented) {
 							detailContent(isSidebarVisible: false)
@@ -78,7 +80,8 @@ struct ContentView: View {
 			NavigationSplitView(columnVisibility: $splitColumnVisibility) {
 					FeedView(
 							selectedItemIDs: $logic.selectedItemIDs,
-							openSettings: { presentSettings() }
+							openSettings: { presentSettings() },
+							isSidebarVisible: splitColumnVisibility != .detailOnly
 					)
 					.navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 420)
 			} detail: {
@@ -108,10 +111,11 @@ struct ContentView: View {
 	}
 
 	private var macNavigation: some View {
-			NavigationSplitView {
+			NavigationSplitView(columnVisibility: $macSplitColumnVisibility) {
 					FeedView(
 							selectedItemIDs: $logic.selectedItemIDs,
-							openSettings: { presentSettings() }
+							openSettings: { presentSettings() },
+							isSidebarVisible: macSplitColumnVisibility != .detailOnly
 					)
 					.frame(minWidth: 300)
 			} detail: {

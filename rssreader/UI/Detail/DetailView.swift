@@ -94,12 +94,15 @@ struct DetailView: View {
 								case .web:
 										webPane
 												.transition(.opacity)
+												.id(ContentTab.web)
 								case .reader:
 										readerPane
 												.transition(.opacity)
+												.id(ContentTab.reader)
 								case .content:
 										contentPane
 												.transition(.opacity)
+												.id(ContentTab.content)
 								}
 						}
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -187,6 +190,7 @@ struct DetailView: View {
 				VStack(spacing: 0) {
 						if isURLBarVisible {
 								urlBar
+								.transition(.move(edge: .top).combined(with: .opacity))
 								Divider()
 						}
 
@@ -228,12 +232,17 @@ struct DetailView: View {
 								}
 						}
 
-						if let urlFieldError {
-								Text(urlFieldError)
-										.font(.caption)
-										.foregroundStyle(.red)
+						Group {
+								if let urlFieldError {
+										Text(urlFieldError)
+												.font(.caption)
+												.foregroundStyle(.red)
+												.transition(.opacity)
+								}
 						}
 				}
+				.animation(.easeInOut(duration: 0.2), value: isURLBarVisible)
+				.animation(.easeInOut(duration: 0.2), value: urlFieldError)
 				.padding(.horizontal, 12)
 				.padding(.vertical, 10)
 				.background(.bar)
@@ -261,7 +270,9 @@ struct DetailView: View {
 		}
 
 		private func toggleURLBar() {
-				isURLBarVisible.toggle()
+				withAnimation(.easeInOut(duration: 0.2)) {
+						isURLBarVisible.toggle()
+				}
 
 				if isURLBarVisible {
 						editableURLText = currentWebURL?.absoluteString ?? editableURLText

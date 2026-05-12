@@ -88,6 +88,7 @@ struct FeedView: View {
 						.font(.caption)
 						.multilineTextAlignment(.center)
 						.padding(.bottom, 8)
+						.transition(.move(edge: .top).combined(with: .opacity))
 				}
 				Divider()
 				Group {
@@ -98,6 +99,7 @@ struct FeedView: View {
 									retry: { Task { await service.authenticate() } },
 									sync: { await service.syncCurrentMode() }
 							)
+							.transition(.opacity)
 					} else {
 							List(selection: $selectedItemIDs) {
 									Section {
@@ -144,8 +146,12 @@ struct FeedView: View {
 							.platformFeedListRefreshable {
 									await service.syncCurrentMode()
 							}
+							.transition(.opacity)
 					}
 				}
+					.animation(.easeInOut(duration: 0.2), value: service.selectedSubscriptionID)
+					.animation(.easeInOut(duration: 0.2), value: service.items.isEmpty)
+					.animation(.easeInOut(duration: 0.2), value: service.isLoading)
 					.searchable(text: $searchText, placement: searchFieldPlacement, prompt: "Search articles")
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

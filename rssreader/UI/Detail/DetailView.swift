@@ -9,11 +9,19 @@ struct DetailView: View {
 		let isSidebarVisible: Bool
 		@State private var activeTab: ContentTab = .web
 		@State private var lastAutoOpenedItemID: String?
+		@State private var currentWebURL: URL?
+		@State private var isURLBarVisible = false
+		@State private var editableURLText: String
+		@State private var urlFieldError: String?
+		@State private var webReloadToken = 0
+		@FocusState private var isURLFieldFocused: Bool
 
 		init(item: FeedItem, openSettings: @escaping () -> Void = {}, isSidebarVisible: Bool = false) {
 				self.item = item
 				self.openSettings = openSettings
 				self.isSidebarVisible = isSidebarVisible
+				_currentWebURL = State(initialValue: item.url)
+				_editableURLText = State(initialValue: item.url?.absoluteString ?? "")
 		}
 
 		private var detailPrimaryThumbnailURL: URL? {
@@ -103,9 +111,18 @@ struct DetailView: View {
 				.onChange(of: item.id, initial: false) { _, _ in
 						lastAutoOpenedItemID = nil
 						activeTab = item.url != nil ? .web : .content
+						currentWebURL = item.url
+						webReloadToken = 0
+						editableURLText = item.url?.absoluteString ?? ""
+						urlFieldError = nil
+						isURLBarVisible = false
 				}
 				.onAppear {
 						activeTab = item.url != nil ? .web : .content
+						currentWebURL = item.url
+						webReloadToken = 0
+						editableURLText = item.url?.absoluteString ?? ""
+						urlFieldError = nil
 				}
 				.navigationTitle("")
 				.toolbar {
@@ -118,7 +135,7 @@ struct DetailView: View {
 					}
 
 					ToolbarItem(placement: .primaryAction) {
-						DetailTabSwitcher(activeTab: $activeTab, hasWebURL: item.url != nil)
+						DetailTabSwitcher(activeTab: $activeTab, hasWebURL: currentWebURL != nil)
 					}
 
 						ToolbarItemGroup(placement: itemActionsButtonsLocation) {
@@ -131,6 +148,20 @@ struct DetailView: View {
 
 					ToolbarItemGroup(placement: previousNextItemButtonsLocation) {
 						PreviousNextItemButtons()
+					}
+
+					ToolbarItemGroup(placement: .primaryAction) {
+						Menu("Web Options", systemImage: "ellipsis") {
+							Button("Toggle URL Bar", systemImage: isURLBarVisible ? "xmark.circle" : "menubar.rectangle") {
+								toggleURLBar()
+							}
+							.help(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar")
+							Button("Refresh Page", systemImage: "arrow.clockwise") {
+								reloadCurrentWebPage()
+							}
+							.help("Refresh Page")
+						}
+
 					}
 
 
@@ -153,23 +184,59 @@ struct DetailView: View {
 
 		@ViewBuilder
 		private var webPane: some View {
-				if let url = item.url {
-						if service.preferExternalBrowser {
-								externalBrowserPane(url: url)
+				VStack(spacing: 0) {
+						if isURLBarVisible {
+								urlBar
+								Divider()
+						}
+
+						if let url = currentWebURL {
+								if service.preferExternalBrowser {
+									externalBrowserPane(url: url)
+								} else {
+										WebView(source: .url(url), itemID: item.id + "-web-" + url.absoluteString + "-" + String(webReloadToken))
+												.frame(maxWidth: .infinity, maxHeight: .infinity)
+								}
 						} else {
-								WebView(source: .url(url), itemID: item.id + "-web")
-										.frame(maxWidth: .infinity, maxHeight: .infinity)
+								VStack(spacing: 12) {
+										Image(systemName: "link.badge.plus")
+												.font(.largeTitle)
+												.foregroundStyle(.secondary)
+										Text("No URL available for this item.")
+												.foregroundStyle(.secondary)
+										Text("Use the URL bar to open a webpage.")
+												.font(.caption)
+												.foregroundStyle(.tertiary)
+								}
+								.frame(maxWidth: .infinity, maxHeight: .infinity)
 						}
-				} else {
-						VStack(spacing: 12) {
-								Image(systemName: "link.badge.plus")
-										.font(.largeTitle)
-										.foregroundStyle(.secondary)
-								Text("No URL available for this item.")
-										.foregroundStyle(.secondary)
-						}
-						.frame(maxWidth: .infinity, maxHeight: .infinity)
 				}
+		}
+
+		private var urlBar: some View {
+				VStack(alignment: .leading, spacing: 6) {
+						HStack(spacing: 8) {
+								TextField("https://example.com", text: $editableURLText)
+										.textFieldStyle(.roundedBorder)
+										.focused($isURLFieldFocused)
+										.onSubmit {
+												applyURLChange()
+										}
+
+								Button("Go") {
+										applyURLChange()
+								}
+						}
+
+						if let urlFieldError {
+								Text(urlFieldError)
+										.font(.caption)
+										.foregroundStyle(.red)
+						}
+				}
+				.padding(.horizontal, 12)
+				.padding(.vertical, 10)
+				.background(.bar)
 		}
 
 		private func externalBrowserPane(url: URL) -> some View {
@@ -188,9 +255,67 @@ struct DetailView: View {
 		}
 
 		private func openInBrowser() {
-				guard let url = item.url else { return }
+				guard let url = currentWebURL else { return }
 				lastAutoOpenedItemID = item.id
 				openURL(url)
+		}
+
+		private func toggleURLBar() {
+				isURLBarVisible.toggle()
+
+				if isURLBarVisible {
+						editableURLText = currentWebURL?.absoluteString ?? editableURLText
+						urlFieldError = nil
+						isURLFieldFocused = true
+				}
+		}
+
+		private func applyURLChange() {
+				guard let parsedURL = normalizedWebURL(from: editableURLText) else {
+						urlFieldError = "Enter a valid http:// or https:// URL."
+						return
+				}
+
+				currentWebURL = parsedURL
+				webReloadToken = 0
+				editableURLText = parsedURL.absoluteString
+				urlFieldError = nil
+				lastAutoOpenedItemID = nil
+		}
+
+		private func reloadCurrentWebPage() {
+				guard currentWebURL != nil else { return }
+
+				if service.preferExternalBrowser {
+						lastAutoOpenedItemID = nil
+						openInBrowser()
+						return
+				}
+
+				webReloadToken += 1
+		}
+
+		private func normalizedWebURL(from rawValue: String) -> URL? {
+				let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+				guard !trimmed.isEmpty else { return nil }
+
+				if let direct = URL(string: trimmed), isValidHTTPURL(direct) {
+						return direct
+				}
+
+				if let httpsPrefixed = URL(string: "https://\(trimmed)"), isValidHTTPURL(httpsPrefixed) {
+						return httpsPrefixed
+				}
+
+				return nil
+		}
+
+		private func isValidHTTPURL(_ url: URL) -> Bool {
+				guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
+						return false
+				}
+
+				return !(url.host?.isEmpty ?? true)
 		}
 
 		// MARK: - Content pane (RSS HTML rendered with reader styling)

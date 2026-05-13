@@ -76,8 +76,13 @@ struct DetailView: View {
 				#endif
 		}
 
-		private var urlBarAnimationState: (Bool, String?) {
-				(isURLBarVisible, urlFieldError)
+		private struct URLBarAnimationState: Equatable {
+			let isVisible: Bool
+			let errorMessage: String?
+		}
+
+		private var urlBarAnimationState: URLBarAnimationState {
+				URLBarAnimationState(isVisible: isURLBarVisible, errorMessage: urlFieldError)
 		}
 
 		var body: some View {
@@ -110,7 +115,7 @@ struct DetailView: View {
 								}
 						}
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
-						.animation(.easeInOut(duration: 0.15), value: activeTab)
+						.animation(.viewTransition, value: activeTab)
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 				// Reset to web tab when a different item is selected, but prefer content
@@ -245,7 +250,7 @@ struct DetailView: View {
 								}
 						}
 				}
-				.animation(.easeInOut(duration: 0.2), value: urlBarAnimationState)
+				.animation(.viewTransition, value: urlBarAnimationState)
 				.padding(.horizontal, 12)
 				.padding(.vertical, 10)
 				.background(.bar)
@@ -273,7 +278,7 @@ struct DetailView: View {
 		}
 
 		private func toggleURLBar() {
-				withAnimation(.easeInOut(duration: 0.2)) {
+				withAnimation(.viewTransition) {
 						isURLBarVisible.toggle()
 				}
 

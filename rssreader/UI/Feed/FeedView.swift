@@ -45,8 +45,18 @@ struct FeedView: View {
         Array(displayedItems.prefix(visibleCount))
     }
 
-	private var animatedDisplayState: (String?, Bool, Bool) {
-		(service.selectedSubscriptionID, service.items.isEmpty, service.isLoading)
+	private struct AnimatedDisplayState: Equatable {
+		let selectedSubscriptionID: String?
+		let isItemsEmpty: Bool
+		let isLoading: Bool
+	}
+
+	private var animatedDisplayState: AnimatedDisplayState {
+		AnimatedDisplayState(
+			selectedSubscriptionID: service.selectedSubscriptionID,
+			isItemsEmpty: service.items.isEmpty,
+			isLoading: service.isLoading
+		)
 	}
 
     var body: some View {
@@ -153,7 +163,7 @@ struct FeedView: View {
 							.transition(.opacity)
 					}
 				}
-					.animation(.easeInOut(duration: 0.2), value: animatedDisplayState)
+					.animation(.viewTransition, value: animatedDisplayState)
 					.searchable(text: $searchText, placement: searchFieldPlacement, prompt: "Search articles")
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

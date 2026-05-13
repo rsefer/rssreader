@@ -45,6 +45,20 @@ struct FeedView: View {
         Array(displayedItems.prefix(visibleCount))
     }
 
+	private struct AnimatedDisplayState: Equatable {
+		let selectedSubscriptionID: String?
+		let isItemsEmpty: Bool
+		let isLoading: Bool
+	}
+
+	private var animatedDisplayState: AnimatedDisplayState {
+		AnimatedDisplayState(
+			selectedSubscriptionID: service.selectedSubscriptionID,
+			isItemsEmpty: service.items.isEmpty,
+			isLoading: service.isLoading
+		)
+	}
+
     var body: some View {
         platformContent
             .onChange(of: service.sidebarMode, initial: false) { _, _ in
@@ -62,16 +76,14 @@ struct FeedView: View {
     @ViewBuilder
     private var platformContent: some View {
 			VStack(spacing: 0) {
-				HStack(spacing: 8) {
+				HStack(spacing: 12) {
 					FeedModePicker(sidebarMode: $service.sidebarMode)
 						.frame(maxWidth: .infinity)
 					if !service.subscriptions.isEmpty {
 						RSSFeedFilterButton(
 							subscriptions: service.subscriptions,
-							selectedSubscriptionID: service.selectedSubscriptionID,
-							selectedTitle: selectedSubscription?.title ?? "All Feeds",
-							onSelectAll: { service.selectedSubscriptionID = nil },
-							onSelect: { service.selectedSubscriptionID = $0 }
+							selectedSubscriptionID: $service.selectedSubscriptionID,
+							selectedTitle: selectedSubscription?.title ?? "All Feeds"
 						)
 						.labelStyle(.iconOnly)
 						.buttonStyle(.borderless)
@@ -88,6 +100,7 @@ struct FeedView: View {
 						.font(.caption)
 						.multilineTextAlignment(.center)
 						.padding(.bottom, 8)
+						.transition(.move(edge: .top).combined(with: .opacity))
 				}
 				Divider()
 				Group {
@@ -98,6 +111,7 @@ struct FeedView: View {
 									retry: { Task { await service.authenticate() } },
 									sync: { await service.syncCurrentMode() }
 							)
+							.transition(.opacity)
 					} else {
 							List(selection: $selectedItemIDs) {
 									Section {
@@ -144,8 +158,10 @@ struct FeedView: View {
 							.platformFeedListRefreshable {
 									await service.syncCurrentMode()
 							}
+							.transition(.opacity)
 					}
 				}
+					.animation(.viewTransition, value: animatedDisplayState)
 					.searchable(text: $searchText, placement: searchFieldPlacement, prompt: "Search articles")
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

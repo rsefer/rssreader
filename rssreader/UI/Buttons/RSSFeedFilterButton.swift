@@ -1,32 +1,24 @@
 import SwiftUI
 
 struct RSSFeedFilterButton: View {
-    let subscriptions: [FeedSubscription]
-    let selectedSubscriptionID: String?
-    let selectedTitle: String
-    let onSelectAll: () -> Void
-    let onSelect: (String) -> Void
+		let subscriptions: [FeedSubscription]
+		@Binding var selectedSubscriptionID: String?
+		let selectedTitle: String
 
 	var body: some View {
 		Menu {
-			Button("All Feeds", action: onSelectAll)
+			Button("All Feeds") { selectedSubscriptionID = nil }
 			Divider()
-
 			ForEach(subscriptions) { subscription in
 				Button {
-					onSelect(subscription.id)
+					selectedSubscriptionID = subscription.id
 				} label: {
-					HStack {
-						Text(subscription.title)
-						if selectedSubscriptionID == subscription.id {
-							Spacer()
-							Image(systemName: "checkmark")
-						}
-					}
+					Label(subscription.title, systemImage: selectedSubscriptionID == subscription.id ? "checkmark" : "")
 				}
 			}
 		} label: {
-			Label(selectedTitle, systemImage: "line.3.horizontal.decrease.circle" + (selectedSubscriptionID != nil ? ".fill" : ""))
+			Image(systemName: "line.3.horizontal.decrease.circle" + (selectedSubscriptionID != nil ? ".fill" : ""))
+				.imageScale(.large)
 		}
 	}
 }

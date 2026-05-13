@@ -31,7 +31,7 @@ struct FeedCountsView: View {
 
 	var body: some View {
 		Text(service.isAuthenticated ? countLabel : "Not connected")
-			.font(.caption)
+			.font(.subheadline)
 			.foregroundStyle(.secondary)
 			.lineLimit(1)
 	}

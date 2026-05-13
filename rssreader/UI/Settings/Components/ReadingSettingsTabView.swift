@@ -13,22 +13,22 @@ struct ReadingSettingsTabView: View {
                     Text("Thumbnail size: \(service.articleThumbnailSize) pt")
                 }
                 .disabled(!service.loadArticleImages)
-
-                Picker("Thumbnail aspect ratio", selection: $service.articleThumbnailAspectRatio) {
-                    ForEach(ThumbnailAspectRatio.allCases) { ratio in
-                        Text(ratio.label).tag(ratio)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .disabled(!service.loadArticleImages || service.thumbnailDisplayMode == .favicon)
-
-                Picker("Thumbnail style", selection: $service.thumbnailDisplayMode) {
-                    ForEach(ThumbnailDisplayMode.allCases) { mode in
-                        Text(mode.label).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .disabled(!service.loadArticleImages)
+							List {
+								Picker("Thumbnail aspect ratio", selection: $service.articleThumbnailAspectRatio) {
+									ForEach(ThumbnailAspectRatio.allCases) { ratio in
+										Text(ratio.label).tag(ratio)
+									}
+								}
+								.disabled(!service.loadArticleImages || service.thumbnailDisplayMode == .favicon)
+							}
+							List {
+								Picker("Thumbnail style", selection: $service.thumbnailDisplayMode) {
+									ForEach(ThumbnailDisplayMode.allCases) { mode in
+										Text(mode.label).tag(mode)
+									}
+								}
+								.disabled(!service.loadArticleImages)
+							}
 
                 Text("Site Favicons uses Google's favicon service to fetch the best available icon for each publication. Article Thumbnails shows the article's lead image.")
                     .font(.caption)

@@ -76,6 +76,15 @@ struct DetailView: View {
 				#endif
 		}
 
+		private struct URLBarAnimationState: Equatable {
+			let isVisible: Bool
+			let errorMessage: String?
+		}
+
+		private var urlBarAnimationState: URLBarAnimationState {
+				URLBarAnimationState(isVisible: isURLBarVisible, errorMessage: urlFieldError)
+		}
+
 		var body: some View {
 				VStack(spacing: 0) {
 						// ── Header ──────────────────────────────────────────────────────────
@@ -94,16 +103,19 @@ struct DetailView: View {
 								case .web:
 										webPane
 												.transition(.opacity)
+												.id(ContentTab.web)
 								case .reader:
 										readerPane
 												.transition(.opacity)
+												.id(ContentTab.reader)
 								case .content:
 										contentPane
 												.transition(.opacity)
+												.id(ContentTab.content)
 								}
 						}
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
-						.animation(.easeInOut(duration: 0.15), value: activeTab)
+						.animation(.viewTransition, value: activeTab)
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 				// Reset to web tab when a different item is selected, but prefer content
@@ -187,6 +199,7 @@ struct DetailView: View {
 				VStack(spacing: 0) {
 						if isURLBarVisible {
 								urlBar
+										.transition(.move(edge: .top).combined(with: .opacity))
 								Divider()
 						}
 
@@ -228,12 +241,16 @@ struct DetailView: View {
 								}
 						}
 
-						if let urlFieldError {
-								Text(urlFieldError)
-										.font(.caption)
-										.foregroundStyle(.red)
+						Group {
+								if let urlFieldError {
+										Text(urlFieldError)
+												.font(.caption)
+												.foregroundStyle(.red)
+												.transition(.opacity)
+								}
 						}
 				}
+				.animation(.viewTransition, value: urlBarAnimationState)
 				.padding(.horizontal, 12)
 				.padding(.vertical, 10)
 				.background(.bar)
@@ -261,7 +278,9 @@ struct DetailView: View {
 		}
 
 		private func toggleURLBar() {
-				isURLBarVisible.toggle()
+				withAnimation(.viewTransition) {
+						isURLBarVisible.toggle()
+				}
 
 				if isURLBarVisible {
 						editableURLText = currentWebURL?.absoluteString ?? editableURLText

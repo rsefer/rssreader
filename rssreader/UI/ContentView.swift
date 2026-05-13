@@ -183,7 +183,11 @@ struct ContentView: View {
 							canGoNext: canGoNext
 					))
 					.task {
-							await logic.authenticateIfConfigured(using: service)
+							if service.isConfigured {
+									await logic.authenticateIfConfigured(using: service)
+							} else {
+									presentSettings()
+							}
 					}
 					.onReceive(NotificationCenter.default.publisher(for: .navigateToPreviousItem)) { _ in
 							selectPrevious()

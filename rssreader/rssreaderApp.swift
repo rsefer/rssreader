@@ -57,7 +57,7 @@ struct rssreaderApp: App {
 			SettingsView()
 				.environmentObject(service)
 		}
-		.windowResizability(.contentSize)
+		.windowToolbarStyle(.unified)
 		#endif
 
     }

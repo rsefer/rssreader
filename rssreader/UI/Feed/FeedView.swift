@@ -76,16 +76,14 @@ struct FeedView: View {
     @ViewBuilder
     private var platformContent: some View {
 			VStack(spacing: 0) {
-				HStack(spacing: 8) {
+				HStack(spacing: 12) {
 					FeedModePicker(sidebarMode: $service.sidebarMode)
 						.frame(maxWidth: .infinity)
 					if !service.subscriptions.isEmpty {
 						RSSFeedFilterButton(
 							subscriptions: service.subscriptions,
-							selectedSubscriptionID: service.selectedSubscriptionID,
-							selectedTitle: selectedSubscription?.title ?? "All Feeds",
-							onSelectAll: { service.selectedSubscriptionID = nil },
-							onSelect: { service.selectedSubscriptionID = $0 }
+							selectedSubscriptionID: $service.selectedSubscriptionID,
+							selectedTitle: selectedSubscription?.title ?? "All Feeds"
 						)
 						.labelStyle(.iconOnly)
 						.buttonStyle(.borderless)

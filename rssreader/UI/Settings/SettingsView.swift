@@ -132,7 +132,7 @@ struct SettingsView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar {
-            ToolbarItem(placement: .navigation) {
+            ToolbarItemGroup(placement: .navigation) {
                 ControlGroup {
                     Button(action: navigateBack) {
                         Label("Back", systemImage: "chevron.left")
@@ -147,7 +147,6 @@ struct SettingsView: View {
                 .controlGroupStyle(.navigation)
             }
         }
-        .toolbar(removing: .sidebarToggle)
     }
 
     @ViewBuilder

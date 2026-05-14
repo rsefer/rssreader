@@ -79,34 +79,28 @@ struct ConnectionSettingsTabView: View {
 
     @ViewBuilder
     private var credentialsContent: some View {
-        settingsRow("Server URL") {
+        connectionFieldRow("Server URL") {
             TextField(serverURLPlaceholder, text: $url)
-                .textFieldStyle(.roundedBorder)
-#if os(macOS)
-                .frame(width: 320)
-#endif
-                .autocorrectionDisabled()
+            .textContentType(.URL)
+            .textFieldStyle(.roundedBorder)
+            .autocorrectionDisabled()
         }
 
         settingsDivider
 
-        settingsRow("Username") {
+        connectionFieldRow("Username") {
             TextField("", text: $username)
+            .textContentType(.username)
                 .textFieldStyle(.roundedBorder)
-#if os(macOS)
-                .frame(width: 260)
-#endif
                 .autocorrectionDisabled()
         }
 
         settingsDivider
 
-        settingsRow("Password") {
+        connectionFieldRow("Password") {
             SecureField("", text: $password)
+            .textContentType(.password)
                 .textFieldStyle(.roundedBorder)
-#if os(macOS)
-                .frame(width: 260)
-#endif
         }
 
         settingsDivider
@@ -122,6 +116,17 @@ struct ConnectionSettingsTabView: View {
                 .disabled(url.isEmpty || username.isEmpty || password.isEmpty)
                 .keyboardShortcut(.return, modifiers: .command)
         }
+    }
+
+    @ViewBuilder
+    private func connectionFieldRow<Field: View>(_ title: String, @ViewBuilder field: () -> Field) -> some View {
+#if os(macOS)
+        SettingsFieldRow(title: title, content: field)
+#else
+        LabeledContent(title) {
+            field()
+        }
+#endif
     }
 
     @ViewBuilder
@@ -146,7 +151,7 @@ struct ConnectionSettingsTabView: View {
 
         settingsDivider
 
-        settingsRow("Normalized URL") {
+        connectionFieldRow("Normalized URL") {
             Text(service.normalizedServerURL.isEmpty ? "-" : service.normalizedServerURL)
                 .font(.caption)
                 .textSelection(.enabled)
@@ -154,7 +159,7 @@ struct ConnectionSettingsTabView: View {
 
         settingsDivider
 
-        settingsRow("Resolved Host") {
+        connectionFieldRow("Resolved Host") {
             Text(service.lastResolvedHost.isEmpty ? "-" : service.lastResolvedHost)
                 .font(.caption)
                 .textSelection(.enabled)
@@ -162,7 +167,7 @@ struct ConnectionSettingsTabView: View {
 
         settingsDivider
 
-        settingsRow("Last URL Error") {
+        connectionFieldRow("Last URL Error") {
             Text(service.lastURLErrorCode.map(String.init) ?? "none")
                 .font(.caption)
                 .textSelection(.enabled)
@@ -187,17 +192,6 @@ struct ConnectionSettingsTabView: View {
                 resultLabel(dnsResult)
             }
         }
-    }
-
-    @ViewBuilder
-    private func settingsRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-#if os(macOS)
-        SettingsRow(title: title, detail: nil, content: content)
-#else
-        LabeledContent(title) {
-            content()
-        }
-#endif
     }
 
     @ViewBuilder

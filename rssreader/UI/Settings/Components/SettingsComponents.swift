@@ -59,4 +59,21 @@ struct SettingsRow<Content: View>: View {
         }
     }
 }
+
+struct SettingsFieldRow<Content: View>: View {
+    let title: String
+    var titleWidth: CGFloat = 120
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Text(title)
+                .lineLimit(1)
+                .frame(width: titleWidth, alignment: .leading)
+
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
 #endif

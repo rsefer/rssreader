@@ -12,6 +12,7 @@ struct SettingsView: View {
 		@State private var testResult: TestResult?
 		@State private var dnsResult: TestResult?
 		@State private var selectedTab: SettingsTab = .connection
+		@State private var columnVisibility: NavigationSplitViewVisibility = .all
 
 		private var allTabs: [SettingsTab] {
 				SettingsTab.allCases
@@ -108,7 +109,7 @@ struct SettingsView: View {
 
 #if os(macOS)
 		private var macSettingsLayout: some View {
-				NavigationSplitView(columnVisibility: .constant(.all)) {
+				NavigationSplitView(columnVisibility: $columnVisibility) {
 						List(SettingsTab.allCases, id: \.self, selection: $selectedTab) { tab in
 								Label(tab.title, systemImage: tab.symbol)
 									.padding(.vertical, 3)
@@ -125,6 +126,22 @@ struct SettingsView: View {
 						}
 				}
 				.navigationSplitViewStyle(.balanced)
+				.toolbar {
+										ToolbarItemGroup(placement: .navigation) {
+												ControlGroup {
+														Button(action: navigateBack) {
+																Label("Back", systemImage: "chevron.left")
+														}
+														.disabled(isFirstTab)
+
+														Button(action: navigateForward) {
+																Label("Forward", systemImage: "chevron.right")
+														}
+														.disabled(isLastTab)
+												}
+												.controlGroupStyle(.navigation)
+										}
+								}
 		}
 
 		@ViewBuilder

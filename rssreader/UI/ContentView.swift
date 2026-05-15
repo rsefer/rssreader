@@ -13,7 +13,7 @@ struct ContentView: View {
 		@Environment(\.openURL) private var openURL
 		@Environment(\.horizontalSizeClass) private var horizontalSizeClass
 	#if os(macOS)
-	@Environment(\.openSettings) private var openSettings
+	@Environment(\.openWindow) private var openWindow
 	#endif
 		@EnvironmentObject var service: FreshRSSService
 	@StateObject private var logic: ContentLogic
@@ -164,7 +164,7 @@ struct ContentView: View {
 
 	private func presentSettings() {
 		#if os(macOS)
-		openSettings()
+		openWindow(id: "settings")
 		#else
 		logic.openSettings()
 		#endif

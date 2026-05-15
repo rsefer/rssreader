@@ -101,7 +101,7 @@ struct DetailView: View {
 						ZStack {
 								switch activeTab {
 								case .web:
-										webPane
+																webPane
 												.transition(.opacity)
 												.id(ContentTab.web)
 								case .reader:
@@ -203,6 +203,26 @@ struct DetailView: View {
 								Divider()
 						}
 
+						iPhoneTopAndBottomToolbarUnderlapWebContent
+				}
+		}
+
+		@ViewBuilder
+		private var iPhoneTopAndBottomToolbarUnderlapWebContent: some View {
+				#if os(iOS)
+				if isIPhone {
+						webContent
+								.ignoresSafeArea(.container, edges: [.top, .bottom])
+				} else {
+						webContent
+				}
+				#else
+				webContent
+				#endif
+		}
+
+		@ViewBuilder
+		private var webContent: some View {
 						if let url = currentWebURL {
 								if service.preferExternalBrowser {
 									externalBrowserPane(url: url)
@@ -223,7 +243,6 @@ struct DetailView: View {
 								}
 								.frame(maxWidth: .infinity, maxHeight: .infinity)
 						}
-				}
 		}
 
 		private var urlBar: some View {

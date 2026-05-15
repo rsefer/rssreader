@@ -57,8 +57,8 @@ struct rssreaderApp: App {
 			SettingsView()
 				.environmentObject(service)
 		}
-		.windowStyle(.hiddenTitleBar)
-		.windowToolbarStyle(.unified)
+			.windowStyle(.hiddenTitleBar)
+			.windowToolbarStyle(.unified)
 		#endif
 
     }

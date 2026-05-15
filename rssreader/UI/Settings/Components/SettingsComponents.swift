@@ -44,7 +44,6 @@ struct SettingsRow<Content: View>: View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.title3)
                 if let detail {
                     Text(detail)
                         .font(.subheadline)

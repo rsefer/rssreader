@@ -23,7 +23,7 @@ enum PreviewSampleData {
 
             // Keep the first item on a guaranteed-live page so detail previews can load real web content.
             let articleURL = index == 0
-                ? URL(string: "https://example.com")
+                ? URL(string: "https://nytimes.com")
                 : URL(string: "https://\(feedHost)/articles/sample-\(index + 1)")
             let techmemeURL = index.isMultiple(of: 4)
                 ? URL(string: "https://www.techmeme.com/\(2026 - (index % 2))/\(String(format: "%02d", (index % 12) + 1))/a\(String(format: "%04d", index + 10)).htm")

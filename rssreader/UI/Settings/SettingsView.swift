@@ -273,16 +273,3 @@ struct SettingsView: View {
 }
 
 extension SettingsView.SettingsTab: CaseIterable {}
-
-private struct SettingsPreviewHost: View {
-		@StateObject private var service = AppBootstrap.makeService()
-
-		var body: some View {
-				SettingsView()
-						.environmentObject(service)
-		}
-}
-
-#Preview("SettingsView") {
-		SettingsPreviewHost()
-}

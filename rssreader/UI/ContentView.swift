@@ -10,12 +10,12 @@ import SwiftUI
 struct ContentView: View {
 
 	@Environment(\.scenePhase) private var scenePhase
-    @Environment(\.openURL) private var openURL
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+		@Environment(\.openURL) private var openURL
+		@Environment(\.horizontalSizeClass) private var horizontalSizeClass
 	#if os(macOS)
 	@Environment(\.openSettings) private var openSettings
 	#endif
-    @EnvironmentObject var service: FreshRSSService
+		@EnvironmentObject var service: FreshRSSService
 	@StateObject private var logic: ContentLogic
 	@State private var splitColumnVisibility: NavigationSplitViewVisibility = .all
 	@State private var macSplitColumnVisibility: NavigationSplitViewVisibility = .all
@@ -185,7 +185,7 @@ struct ContentView: View {
 					.task {
 							if service.isConfigured {
 									await logic.authenticateIfConfigured(using: service)
-							} else {
+							} else if !PlatformCapabilities.isRunningPreview {
 									presentSettings()
 							}
 					}

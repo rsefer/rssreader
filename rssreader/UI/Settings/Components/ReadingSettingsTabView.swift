@@ -8,13 +8,11 @@ struct ReadingSettingsTabView: View {
         VStack(alignment: .leading, spacing: 14) {
             thumbnailsSection
             articleOpeningSection
-            readingFooter
         }
 #else
         Form {
             thumbnailsSection
             articleOpeningSection
-            readingFooter
         }
         .formStyle(.grouped)
 #if os(macOS)
@@ -114,12 +112,6 @@ struct ReadingSettingsTabView: View {
 			.font(.caption)
 			.foregroundStyle(.secondary)
 #endif
-	}
-
-	private var readingFooter: some View {
-		Text("Site Favicons uses Google's favicon service to fetch the best available icon for each publication. Article Thumbnails shows each article's lead image when available.")
-			.font(.caption)
-			.foregroundStyle(.secondary)
 	}
 
 	@ViewBuilder

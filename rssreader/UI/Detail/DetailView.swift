@@ -11,9 +11,11 @@ struct DetailView: View {
 		@State private var lastAutoOpenedItemID: String?
 		@State private var currentWebURL: URL?
 		@State private var isURLBarVisible = false
+		@State private var isHeaderVisible = false
 		@State private var editableURLText: String
 		@State private var urlFieldError: String?
 		@State private var webReloadToken = 0
+		@State private var detailViewWidth: CGFloat = 0
 		@FocusState private var isURLFieldFocused: Bool
 
 		init(item: FeedItem, openSettings: @escaping () -> Void = {}, isSidebarVisible: Bool = false) {
@@ -85,18 +87,28 @@ struct DetailView: View {
 				URLBarAnimationState(isVisible: isURLBarVisible, errorMessage: urlFieldError)
 		}
 
+		private struct HeaderAnimationState: Equatable {
+			let isVisible: Bool
+		}
+
+		private var headerAnimationState: HeaderAnimationState {
+				HeaderAnimationState(isVisible: isHeaderVisible)
+		}
+
 		var body: some View {
 				VStack(spacing: 0) {
 						// ── Header ──────────────────────────────────────────────────────────
-#if os(macOS)
-						header
-								.frame(maxWidth: .infinity, alignment: .leading)
-								.padding(.horizontal, 16)
-								.padding(.vertical, 12)
-								.background(.bar)
+						if isHeaderVisible {
+							header
+									.frame(maxWidth: .infinity, alignment: .leading)
+									.padding(.horizontal, 16)
+									.padding(.vertical, 12)
+									.background(.bar)
+									.transition(.move(edge: .top).combined(with: .opacity))
 
-						Divider()
-					#endif
+							Divider()
+									.transition(.opacity)
+						}
 						// ── Content area ─────────────────────────────────────────────────
 						ZStack {
 								switch activeTab {
@@ -117,7 +129,9 @@ struct DetailView: View {
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
 						.animation(.viewTransition, value: activeTab)
 				}
+				.animation(.viewTransition, value: headerAnimationState)
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
+				.background(DetailViewWidthReader(width: $detailViewWidth))
 				// Reset to web tab when a different item is selected, but prefer content
 				// if there's no URL
 				.onChange(of: item.id, initial: false) { _, _ in
@@ -128,6 +142,17 @@ struct DetailView: View {
 						editableURLText = item.url?.absoluteString ?? ""
 						urlFieldError = nil
 						isURLBarVisible = false
+				}
+				.onChange(of: isURLBarVisible, initial: false) { _, isVisible in
+						if isVisible {
+							isHeaderVisible = false
+						}
+				}
+				.onChange(of: isHeaderVisible, initial: false) { _, isVisible in
+						if isVisible {
+							isURLBarVisible = false
+							isURLFieldFocused = false
+						}
 				}
 				.onAppear {
 						activeTab = item.url != nil ? .web : .content
@@ -146,13 +171,21 @@ struct DetailView: View {
 						}
 					}
 
+					ToolbarItemGroup(placement: .navigation) {
+						ControlGroup {
+							ToggleDetailHeader(isHeaderVisible: $isHeaderVisible)
+						}
+					}
+
+
 					ToolbarItem(placement: .primaryAction) {
 						DetailTabSwitcher(activeTab: $activeTab, hasWebURL: currentWebURL != nil)
 					}
 
 						ToolbarItemGroup(placement: itemActionsButtonsLocation) {
-								ControlGroup {
-									ItemActionsButtons(item: item)
+								ControlGroup("Item Actions") {
+
+									ItemActionsButtons(item: item, isHeaderVisible: $isHeaderVisible)
 										.environmentObject(service)
 								}
 								.controlGroupStyle(.automatic)
@@ -164,10 +197,10 @@ struct DetailView: View {
 
 					ToolbarItemGroup(placement: .primaryAction) {
 						Menu("Web Options", systemImage: "ellipsis") {
-							Button("Toggle URL Bar", systemImage: isURLBarVisible ? "xmark.circle" : "menubar.rectangle") {
+							Button(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar", systemImage: isURLBarVisible ? "xmark.circle" : "menubar.rectangle") {
 								toggleURLBar()
 							}
-							.help(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar")
+								.help(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar")
 							Button("Refresh Page", systemImage: "arrow.clockwise") {
 								reloadCurrentWebPage()
 							}
@@ -188,7 +221,14 @@ struct DetailView: View {
 						primaryThumbnailURL: detailPrimaryThumbnailURL,
 						fallbackThumbnailURL: detailFallbackThumbnailURL,
 						loadImages: service.loadArticleImages,
-						thumbnailDisplayMode: service.thumbnailDisplayMode
+						thumbnailDisplayMode: service.thumbnailDisplayMode,
+						useCompactHorizontalLayout: detailViewWidth < 600,
+						onURLTap: { url in
+								currentWebURL = url
+								editableURLText = url.absoluteString
+								webReloadToken = 0
+								activeTab = .web
+						}
 				)
 		}
 
@@ -203,22 +243,14 @@ struct DetailView: View {
 								Divider()
 						}
 
-						iPhoneTopAndBottomToolbarUnderlapWebContent
+						topAndBottomToolbarUnderlapWebContent
 				}
 		}
 
 		@ViewBuilder
-		private var iPhoneTopAndBottomToolbarUnderlapWebContent: some View {
-				#if os(iOS)
-				if isIPhone {
-						webContent
-								.ignoresSafeArea(.container, edges: [.top, .bottom])
-				} else {
-						webContent
-				}
-				#else
+		private var topAndBottomToolbarUnderlapWebContent: some View {
 				webContent
-				#endif
+						.ignoresSafeArea(.container, edges: [.top, .bottom])
 		}
 
 		@ViewBuilder
@@ -529,4 +561,20 @@ struct DetailView: View {
 						.replacingOccurrences(of: "\"", with: "&quot;")
 						.replacingOccurrences(of: "'", with: "&#39;")
 		}
+}
+
+private struct DetailViewWidthReader: View {
+	@Binding var width: CGFloat
+
+	var body: some View {
+		GeometryReader { proxy in
+			Color.clear
+				.onAppear {
+					width = proxy.size.width
+				}
+				.onChange(of: proxy.size.width, initial: false) { _, newWidth in
+					width = newWidth
+				}
+		}
+	}
 }

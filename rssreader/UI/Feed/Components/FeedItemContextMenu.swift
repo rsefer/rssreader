@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FeedItemContextMenu: View {
     @EnvironmentObject private var service: FreshRSSService
+	@State private var isHeaderVisible = false
 
     let item: FeedItem
     let contextItems: [FeedItem]
@@ -20,7 +21,7 @@ struct FeedItemContextMenu: View {
     }
 
     var body: some View {
-       
+
         if isBatch {
 					Button {
 							Task { await service.markAsRead(contextItems) }
@@ -35,14 +36,14 @@ struct FeedItemContextMenu: View {
 							Label(isBatch ? "Mark Selection as Unread" : "Mark as Unread", systemImage: "circle.dotted.and.circle")
 					}
 					.disabled(!anyRead)
-					
+
 				} else {
 					Button(action: onOpen) {
 							Label("Open", systemImage: "doc.text.magnifyingglass")
 					}
 					.disabled(isBatch)
 					Divider()
-					ItemActionsButtons(item: item)
+					ItemActionsButtons(item: item, isHeaderVisible: $isHeaderVisible)
 				}
     }
 }

@@ -43,7 +43,7 @@ struct ConnectionSettingsTabView: View {
 #if os(macOS)
         SettingsCard(
             title: "FreshRSS Connection",
-            subtitle: "Credentials are saved securely in Keychain"
+            subtitle: "Server URL and username sync through iCloud"
         ) {
             credentialsContent
         }
@@ -54,7 +54,7 @@ struct ConnectionSettingsTabView: View {
             Text("FreshRSS Connection")
                 .font(.headline)
         } footer: {
-            Text("Your credentials are securely stored in your Mac's Keychain. The Google Reader-compatible API must be enabled in your FreshRSS instance under Administration -> Authentication.")
+            Text("Your password stays in Keychain, and your server URL and username sync through iCloud when available. The Google Reader-compatible API must be enabled in your FreshRSS instance under Administration -> Authentication.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

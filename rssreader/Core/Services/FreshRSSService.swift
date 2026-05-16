@@ -253,6 +253,9 @@ final class FreshRSSService: ObservableObject {
     private var authToken: String?
     private var actionToken: String?
     private var hasStoredPassword = false
+    private let ubiquitousStore = NSUbiquitousKeyValueStore.default
+    private var ubiquitousStoreObserver: NSObjectProtocol?
+    private var isApplyingCloudSync = false
     private var techmemeMetadataCache: [String: TechmemeMetadata] = [:]
     private var techmemeEnrichmentTask: Task<Void, Never>?
 
@@ -260,8 +263,8 @@ final class FreshRSSService: ObservableObject {
 
     init() {
         let defaults = UserDefaults.standard
-        serverURL = defaults.string(forKey: StorageKeys.serverURL) ?? ""
-        username = defaults.string(forKey: StorageKeys.username) ?? ""
+        serverURL = Self.syncedString(forKey: StorageKeys.serverURL, defaults: defaults, cloudStore: ubiquitousStore)
+        username = Self.syncedString(forKey: StorageKeys.username, defaults: defaults, cloudStore: ubiquitousStore)
         // On macOS, non-interactive keychain reads can fail depending on the
         // item's access control; allow normal retrieval so saved passwords load
         // reliably after relaunch.
@@ -278,6 +281,26 @@ final class FreshRSSService: ObservableObject {
         let storedInterval = defaults.integer(forKey: StorageKeys.autoRefreshIntervalMinutes)
         autoRefreshIntervalMinutes = Self.clampAutoRefreshInterval(storedInterval == 0 ? 15 : storedInterval)
         hasStoredPassword = !password.isEmpty
+
+        ubiquitousStoreObserver = NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: ubiquitousStore,
+            queue: .main
+        ) { [weak self] notification in
+            let changedKeys = notification.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] ?? []
+
+            Task { @MainActor [weak self, changedKeys] in
+                self?.applyCloudSyncedConnectionInfo(changedKeys: changedKeys)
+            }
+        }
+
+        ubiquitousStore.synchronize()
+    }
+
+    deinit {
+        if let ubiquitousStoreObserver {
+            NotificationCenter.default.removeObserver(ubiquitousStoreObserver)
+        }
     }
 
     var isConfigured: Bool {
@@ -316,6 +339,9 @@ final class FreshRSSService: ObservableObject {
 
     private func persistSetting(_ value: String, forKey key: String) {
         UserDefaults.standard.set(value, forKey: key)
+        guard !isApplyingCloudSync else { return }
+        ubiquitousStore.set(value, forKey: key)
+        ubiquitousStore.synchronize()
     }
 
     private func persistSetting(_ value: Bool, forKey key: String) {
@@ -324,6 +350,40 @@ final class FreshRSSService: ObservableObject {
 
     private func persistSetting(_ value: Int, forKey key: String) {
         UserDefaults.standard.set(value, forKey: key)
+    }
+
+    private static func syncedString(forKey key: String, defaults: UserDefaults, cloudStore: NSUbiquitousKeyValueStore) -> String {
+        if let cloudValue = cloudStore.string(forKey: key) {
+            return cloudValue
+        }
+
+        return defaults.string(forKey: key) ?? ""
+    }
+
+    private func applyCloudSyncedConnectionInfo(changedKeys: [String]) {
+        guard changedKeys.contains(StorageKeys.serverURL) || changedKeys.contains(StorageKeys.username) else {
+            return
+        }
+
+        var shouldRefreshPasswordState = false
+
+        if let cloudServerURL = ubiquitousStore.string(forKey: StorageKeys.serverURL), cloudServerURL != serverURL {
+            shouldRefreshPasswordState = true
+            isApplyingCloudSync = true
+            serverURL = cloudServerURL
+            isApplyingCloudSync = false
+        }
+
+        if let cloudUsername = ubiquitousStore.string(forKey: StorageKeys.username), cloudUsername != username {
+            shouldRefreshPasswordState = true
+            isApplyingCloudSync = true
+            username = cloudUsername
+            isApplyingCloudSync = false
+        }
+
+        if shouldRefreshPasswordState {
+            hasStoredPassword = !password.isEmpty
+        }
     }
 
     // MARK: - Authentication

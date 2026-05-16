@@ -46,15 +46,7 @@ struct FeedItemRow: View {
                 }
 
                 HStack(alignment: .center, spacing: 6) {
-                    Text(item.publication)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Spacer(minLength: 2)
-
-									Text(item.timeAgo)
-											.font(.caption2)
-											.foregroundStyle(.quaternary)
+									MetadataPrimaryView(item: item, context: .feed)
                 }
             }
         }

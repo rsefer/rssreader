@@ -15,6 +15,7 @@ struct DetailView: View {
 		@State private var editableURLText: String
 		@State private var urlFieldError: String?
 		@State private var webReloadToken = 0
+		@State private var detailViewWidth: CGFloat = 0
 		@FocusState private var isURLFieldFocused: Bool
 
 		init(item: FeedItem, openSettings: @escaping () -> Void = {}, isSidebarVisible: Bool = false) {
@@ -130,6 +131,7 @@ struct DetailView: View {
 				}
 				.animation(.viewTransition, value: headerAnimationState)
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
+				.background(DetailViewWidthReader(width: $detailViewWidth))
 				// Reset to web tab when a different item is selected, but prefer content
 				// if there's no URL
 				.onChange(of: item.id, initial: false) { _, _ in
@@ -219,7 +221,14 @@ struct DetailView: View {
 						primaryThumbnailURL: detailPrimaryThumbnailURL,
 						fallbackThumbnailURL: detailFallbackThumbnailURL,
 						loadImages: service.loadArticleImages,
-						thumbnailDisplayMode: service.thumbnailDisplayMode
+						thumbnailDisplayMode: service.thumbnailDisplayMode,
+						useCompactHorizontalLayout: detailViewWidth < 600,
+						onURLTap: { url in
+								currentWebURL = url
+								editableURLText = url.absoluteString
+								webReloadToken = 0
+								activeTab = .web
+						}
 				)
 		}
 
@@ -552,4 +561,20 @@ struct DetailView: View {
 						.replacingOccurrences(of: "\"", with: "&quot;")
 						.replacingOccurrences(of: "'", with: "&#39;")
 		}
+}
+
+private struct DetailViewWidthReader: View {
+	@Binding var width: CGFloat
+
+	var body: some View {
+		GeometryReader { proxy in
+			Color.clear
+				.onAppear {
+					width = proxy.size.width
+				}
+				.onChange(of: proxy.size.width, initial: false) { _, newWidth in
+					width = newWidth
+				}
+		}
+	}
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import CloudKit
 
 struct ConnectionSettingsTabView: View {
     @EnvironmentObject private var service: FreshRSSService
@@ -16,9 +17,12 @@ struct ConnectionSettingsTabView: View {
     let saveAndDismiss: () -> Void
     let resultLabel: (SettingsView.TestResult) -> AnyView
 
+    @State private var iCloudAccountStatus: CKAccountStatus = .couldNotDetermine
+
     var body: some View {
 #if os(macOS)
         VStack(alignment: .leading, spacing: 14) {
+            iCloudStatusSection
             connectionSection
             diagnosticsSection
 
@@ -26,12 +30,19 @@ struct ConnectionSettingsTabView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+        .task {
+            iCloudAccountStatus = (try? await CKContainer(identifier: CloudKitSyncService.containerIdentifier).accountStatus()) ?? .couldNotDetermine
+        }
 #else
         Form {
+            iCloudStatusSection
             connectionSection
             diagnosticsSection
         }
         .formStyle(.grouped)
+        .task {
+            iCloudAccountStatus = (try? await CKContainer(identifier: CloudKitSyncService.containerIdentifier).accountStatus()) ?? .couldNotDetermine
+        }
 #if os(macOS)
         .padding()
 #endif
@@ -43,7 +54,7 @@ struct ConnectionSettingsTabView: View {
 #if os(macOS)
         SettingsCard(
             title: "FreshRSS Connection",
-            subtitle: "Credentials are saved securely in Keychain"
+            subtitle: "Server URL and username sync through iCloud"
         ) {
             credentialsContent
         }
@@ -54,11 +65,48 @@ struct ConnectionSettingsTabView: View {
             Text("FreshRSS Connection")
                 .font(.headline)
         } footer: {
-            Text("Your credentials are securely stored in your Mac's Keychain. The Google Reader-compatible API must be enabled in your FreshRSS instance under Administration -> Authentication.")
+            Text("Your password stays in Keychain, and your server URL and username sync through iCloud when available. The Google Reader-compatible API must be enabled in your FreshRSS instance under Administration -> Authentication.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
 #endif
+    }
+
+    @ViewBuilder
+    private var iCloudStatusSection: some View {
+#if os(macOS)
+        SettingsCard(title: "iCloud Sync", subtitle: nil) {
+            iCloudStatusContent
+        }
+#else
+        Section("iCloud Sync") {
+            iCloudStatusContent
+        }
+#endif
+    }
+
+    @ViewBuilder
+    private var iCloudStatusContent: some View {
+        connectionFieldRow("Account") {
+            HStack(spacing: 6) {
+                Image(systemName: iCloudAccountStatus == .available ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(iCloudAccountStatus == .available ? Color.green : Color.secondary)
+                Text(iCloudStatusLabel)
+                    .font(.caption)
+                    .foregroundStyle(iCloudAccountStatus == .available ? Color.primary : Color.secondary)
+            }
+        }
+    }
+
+    private var iCloudStatusLabel: String {
+        switch iCloudAccountStatus {
+        case .available:          return "Signed in"
+        case .noAccount:          return "Not signed in to iCloud"
+        case .restricted:         return "iCloud access restricted"
+        case .temporarilyUnavailable: return "iCloud temporarily unavailable"
+        case .couldNotDetermine:  return "Checking…"
+        @unknown default:         return "Unknown"
+        }
     }
 
     @ViewBuilder

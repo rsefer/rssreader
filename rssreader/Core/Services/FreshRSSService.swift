@@ -253,6 +253,10 @@ final class FreshRSSService: ObservableObject {
     private var authToken: String?
     private var actionToken: String?
     private var hasStoredPassword = false
+    private let ubiquitousStore = NSUbiquitousKeyValueStore.default
+    private var ubiquitousStoreObserver: NSObjectProtocol?
+    private var isApplyingCloudSync = false
+    private let cloudKitSync = CloudKitSyncService()
     private var techmemeMetadataCache: [String: TechmemeMetadata] = [:]
     private var techmemeEnrichmentTask: Task<Void, Never>?
 
@@ -260,8 +264,8 @@ final class FreshRSSService: ObservableObject {
 
     init() {
         let defaults = UserDefaults.standard
-        serverURL = defaults.string(forKey: StorageKeys.serverURL) ?? ""
-        username = defaults.string(forKey: StorageKeys.username) ?? ""
+        serverURL = Self.syncedString(forKey: StorageKeys.serverURL, defaults: defaults, cloudStore: ubiquitousStore)
+        username = Self.syncedString(forKey: StorageKeys.username, defaults: defaults, cloudStore: ubiquitousStore)
         // On macOS, non-interactive keychain reads can fail depending on the
         // item's access control; allow normal retrieval so saved passwords load
         // reliably after relaunch.
@@ -278,6 +282,34 @@ final class FreshRSSService: ObservableObject {
         let storedInterval = defaults.integer(forKey: StorageKeys.autoRefreshIntervalMinutes)
         autoRefreshIntervalMinutes = Self.clampAutoRefreshInterval(storedInterval == 0 ? 15 : storedInterval)
         hasStoredPassword = !password.isEmpty
+
+        // Merge any pending read IDs that were synced from another device via CloudKit.
+        Task {
+            let syncedReadIDs = await cloudKitSync.fetchSyncedReadIDs()
+            if !syncedReadIDs.isEmpty {
+                locallyReadItemIDs.formUnion(syncedReadIDs)
+            }
+        }
+
+        ubiquitousStoreObserver = NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: ubiquitousStore,
+            queue: .main
+        ) { [weak self] notification in
+            let changedKeys = notification.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] ?? []
+
+            Task { @MainActor [weak self, changedKeys] in
+                self?.applyCloudSyncedConnectionInfo(changedKeys: changedKeys)
+            }
+        }
+
+        ubiquitousStore.synchronize()
+    }
+
+    deinit {
+        if let ubiquitousStoreObserver {
+            NotificationCenter.default.removeObserver(ubiquitousStoreObserver)
+        }
     }
 
     var isConfigured: Bool {
@@ -316,6 +348,9 @@ final class FreshRSSService: ObservableObject {
 
     private func persistSetting(_ value: String, forKey key: String) {
         UserDefaults.standard.set(value, forKey: key)
+        guard !isApplyingCloudSync else { return }
+        ubiquitousStore.set(value, forKey: key)
+        ubiquitousStore.synchronize()
     }
 
     private func persistSetting(_ value: Bool, forKey key: String) {
@@ -324,6 +359,40 @@ final class FreshRSSService: ObservableObject {
 
     private func persistSetting(_ value: Int, forKey key: String) {
         UserDefaults.standard.set(value, forKey: key)
+    }
+
+    private static func syncedString(forKey key: String, defaults: UserDefaults, cloudStore: NSUbiquitousKeyValueStore) -> String {
+        if let cloudValue = cloudStore.string(forKey: key) {
+            return cloudValue
+        }
+
+        return defaults.string(forKey: key) ?? ""
+    }
+
+    private func applyCloudSyncedConnectionInfo(changedKeys: [String]) {
+        guard changedKeys.contains(StorageKeys.serverURL) || changedKeys.contains(StorageKeys.username) else {
+            return
+        }
+
+        var shouldRefreshPasswordState = false
+
+        if let cloudServerURL = ubiquitousStore.string(forKey: StorageKeys.serverURL), cloudServerURL != serverURL {
+            shouldRefreshPasswordState = true
+            isApplyingCloudSync = true
+            serverURL = cloudServerURL
+            isApplyingCloudSync = false
+        }
+
+        if let cloudUsername = ubiquitousStore.string(forKey: StorageKeys.username), cloudUsername != username {
+            shouldRefreshPasswordState = true
+            isApplyingCloudSync = true
+            username = cloudUsername
+            isApplyingCloudSync = false
+        }
+
+        if shouldRefreshPasswordState {
+            hasStoredPassword = !password.isEmpty
+        }
     }
 
     // MARK: - Authentication
@@ -568,6 +637,7 @@ final class FreshRSSService: ObservableObject {
             scheduleTechmemeEnrichment(for: items)
             lastSyncDate = Date()
             locallyReadItemIDs.removeAll()
+            Task { await cloudKitSync.clearSyncedReadIDs() }
 
         } catch {
             errorMessage = "Failed to load items: \(error.localizedDescription)"
@@ -613,6 +683,12 @@ final class FreshRSSService: ObservableObject {
             errorMessage = unreadItems.count == 1
                 ? "Failed to mark \(unreadItems[0].title) as read."
                 : "Some selected items could not be marked as read."
+        }
+
+        // Push successfully read IDs to CloudKit so other devices see them immediately.
+        let syncedIDs = locallyReadItemIDs.intersection(Set(unreadItems.map(\.id)))
+        if !syncedIDs.isEmpty {
+            Task { await cloudKitSync.pushReadIDs(syncedIDs) }
         }
     }
 

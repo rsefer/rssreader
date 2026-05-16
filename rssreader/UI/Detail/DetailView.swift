@@ -203,22 +203,14 @@ struct DetailView: View {
 								Divider()
 						}
 
-						iPhoneTopAndBottomToolbarUnderlapWebContent
+						topAndBottomToolbarUnderlapWebContent
 				}
 		}
 
 		@ViewBuilder
-		private var iPhoneTopAndBottomToolbarUnderlapWebContent: some View {
-				#if os(iOS)
-				if isIPhone {
-						webContent
-								.ignoresSafeArea(.container, edges: [.top, .bottom])
-				} else {
-						webContent
-				}
-				#else
+		private var topAndBottomToolbarUnderlapWebContent: some View {
 				webContent
-				#endif
+						.ignoresSafeArea(.container, edges: [.top, .bottom])
 		}
 
 		@ViewBuilder

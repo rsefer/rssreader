@@ -256,6 +256,7 @@ final class FreshRSSService: ObservableObject {
     private let ubiquitousStore = NSUbiquitousKeyValueStore.default
     private var ubiquitousStoreObserver: NSObjectProtocol?
     private var isApplyingCloudSync = false
+    private let cloudKitSync = CloudKitSyncService()
     private var techmemeMetadataCache: [String: TechmemeMetadata] = [:]
     private var techmemeEnrichmentTask: Task<Void, Never>?
 
@@ -281,6 +282,14 @@ final class FreshRSSService: ObservableObject {
         let storedInterval = defaults.integer(forKey: StorageKeys.autoRefreshIntervalMinutes)
         autoRefreshIntervalMinutes = Self.clampAutoRefreshInterval(storedInterval == 0 ? 15 : storedInterval)
         hasStoredPassword = !password.isEmpty
+
+        // Merge any pending read IDs that were synced from another device via CloudKit.
+        Task {
+            let syncedReadIDs = await cloudKitSync.fetchSyncedReadIDs()
+            if !syncedReadIDs.isEmpty {
+                locallyReadItemIDs.formUnion(syncedReadIDs)
+            }
+        }
 
         ubiquitousStoreObserver = NotificationCenter.default.addObserver(
             forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
@@ -628,6 +637,7 @@ final class FreshRSSService: ObservableObject {
             scheduleTechmemeEnrichment(for: items)
             lastSyncDate = Date()
             locallyReadItemIDs.removeAll()
+            Task { await cloudKitSync.clearSyncedReadIDs() }
 
         } catch {
             errorMessage = "Failed to load items: \(error.localizedDescription)"
@@ -673,6 +683,12 @@ final class FreshRSSService: ObservableObject {
             errorMessage = unreadItems.count == 1
                 ? "Failed to mark \(unreadItems[0].title) as read."
                 : "Some selected items could not be marked as read."
+        }
+
+        // Push successfully read IDs to CloudKit so other devices see them immediately.
+        let syncedIDs = locallyReadItemIDs.intersection(Set(unreadItems.map(\.id)))
+        if !syncedIDs.isEmpty {
+            Task { await cloudKitSync.pushReadIDs(syncedIDs) }
         }
     }
 

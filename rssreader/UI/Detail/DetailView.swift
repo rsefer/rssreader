@@ -201,6 +201,11 @@ struct DetailView: View {
 								toggleURLBar()
 							}
 								.help(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar")
+							Button("Remove Paywalls", systemImage: "lock.open") {
+								removePaywalls()
+							}
+							.disabled(currentWebURL == nil)
+							.help("Open the current page through Remove Paywalls")
 							Button("Refresh Page", systemImage: "arrow.clockwise") {
 								reloadCurrentWebPage()
 							}
@@ -363,6 +368,30 @@ struct DetailView: View {
 				}
 
 				webReloadToken += 1
+		}
+
+		private func removePaywalls() {
+				guard let currentWebURL,
+							let removePaywallsURL = makeRemovePaywallsURL(for: currentWebURL) else { return }
+
+				self.currentWebURL = removePaywallsURL
+				editableURLText = removePaywallsURL.absoluteString
+				urlFieldError = nil
+				lastAutoOpenedItemID = nil
+				webReloadToken = 0
+				activeTab = .web
+
+				if service.preferExternalBrowser {
+						openInBrowser()
+				}
+		}
+
+		private func makeRemovePaywallsURL(for url: URL) -> URL? {
+				var components = URLComponents()
+				components.scheme = "https"
+				components.host = "removepaywalls.com"
+				components.percentEncodedPath = "/" + (url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? url.absoluteString)
+				return components.url
 		}
 
 		private func normalizedWebURL(from rawValue: String) -> URL? {

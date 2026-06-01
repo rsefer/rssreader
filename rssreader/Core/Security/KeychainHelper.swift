@@ -110,7 +110,14 @@ public struct KeychainHelper {
         }
 
         var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        var status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        // Some macOS environments can fail synchronizable queries even when
+        // a local keychain item exists. Fall back to a local-only lookup.
+        if status == errSecItemNotFound || status == errSecNotAvailable || status == errSecMissingEntitlement {
+            query.removeValue(forKey: kSecAttrSynchronizable as String)
+            status = SecItemCopyMatching(query as CFDictionary, &result)
+        }
 
         guard status != errSecItemNotFound else {
             return nil

@@ -349,7 +349,11 @@ final class FreshRSSService: ObservableObject {
     private func persistSetting(_ value: String, forKey key: String) {
         UserDefaults.standard.set(value, forKey: key)
         guard !isApplyingCloudSync else { return }
-        ubiquitousStore.set(value, forKey: key)
+        if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            ubiquitousStore.removeObject(forKey: key)
+        } else {
+            ubiquitousStore.set(value, forKey: key)
+        }
         ubiquitousStore.synchronize()
     }
 
@@ -362,7 +366,8 @@ final class FreshRSSService: ObservableObject {
     }
 
     private static func syncedString(forKey key: String, defaults: UserDefaults, cloudStore: NSUbiquitousKeyValueStore) -> String {
-        if let cloudValue = cloudStore.string(forKey: key) {
+        if let cloudValue = cloudStore.string(forKey: key), !cloudValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            defaults.set(cloudValue, forKey: key)
             return cloudValue
         }
 
@@ -376,14 +381,18 @@ final class FreshRSSService: ObservableObject {
 
         var shouldRefreshPasswordState = false
 
-        if let cloudServerURL = ubiquitousStore.string(forKey: StorageKeys.serverURL), cloudServerURL != serverURL {
+        if let cloudServerURL = ubiquitousStore.string(forKey: StorageKeys.serverURL),
+           !cloudServerURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           cloudServerURL != serverURL {
             shouldRefreshPasswordState = true
             isApplyingCloudSync = true
             serverURL = cloudServerURL
             isApplyingCloudSync = false
         }
 
-        if let cloudUsername = ubiquitousStore.string(forKey: StorageKeys.username), cloudUsername != username {
+        if let cloudUsername = ubiquitousStore.string(forKey: StorageKeys.username),
+           !cloudUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           cloudUsername != username {
             shouldRefreshPasswordState = true
             isApplyingCloudSync = true
             username = cloudUsername

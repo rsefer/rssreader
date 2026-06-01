@@ -387,11 +387,7 @@ struct DetailView: View {
 		}
 
 		private func makeRemovePaywallsURL(for url: URL) -> URL? {
-				var components = URLComponents()
-				components.scheme = "https"
-				components.host = "removepaywalls.com"
-				components.percentEncodedPath = "/" + (url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? url.absoluteString)
-				return components.url
+				URL(string: "https://removepaywalls.com/\(url.absoluteString)")
 		}
 
 		private func normalizedWebURL(from rawValue: String) -> URL? {

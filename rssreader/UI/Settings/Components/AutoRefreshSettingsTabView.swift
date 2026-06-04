@@ -43,22 +43,25 @@ struct AutoRefreshSettingsTabView: View {
     private var autoRefreshContent: some View {
         autoRefreshRow("Enable automatic refresh") {
             Toggle("Enable automatic refresh", isOn: $service.autoRefreshEnabled)
+						.toggleStyle(.switch)
 #if os(macOS)
                 .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.large)
 #endif
         }
 
         autoRefreshDivider
 
         autoRefreshRow("Refresh interval") {
-            Stepper(value: $service.autoRefreshIntervalMinutes, in: 1...240) {
-                Text(autoRefreshIntervalLabel)
-#if os(macOS)
-                    .frame(width: 70, alignment: .trailing)
-#endif
-            }
+					HStack {
+						#if !os(macOS)
+						Text("Refresh every")
+						#endif
+						Spacer()
+						Text("\(service.autoRefreshIntervalMinutes) minute\(service.autoRefreshIntervalMinutes == 1 ? "" : "s")")
+						Stepper(value: $service.autoRefreshIntervalMinutes, in: 1...240) {
+						}
+					}
+            
             .disabled(!service.autoRefreshEnabled)
         }
 
@@ -82,14 +85,6 @@ struct AutoRefreshSettingsTabView: View {
     private var autoRefreshDivider: some View {
 #if os(macOS)
         Divider()
-#endif
-    }
-
-    private var autoRefreshIntervalLabel: String {
-#if os(macOS)
-        "\(service.autoRefreshIntervalMinutes) min"
-#else
-        "Refresh every \(service.autoRefreshIntervalMinutes) minute\(service.autoRefreshIntervalMinutes == 1 ? "" : "s")"
 #endif
     }
 }

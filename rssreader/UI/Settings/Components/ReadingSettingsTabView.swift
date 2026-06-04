@@ -55,56 +55,64 @@ struct ReadingSettingsTabView: View {
 		readingRow("Load article thumbnails") {
 			platformToggle("Load article thumbnails", isOn: $service.loadArticleImages)
 		}
-
-		readingDivider
-
-		readingRow("Thumbnail size") {
-			Stepper(value: $service.articleThumbnailSize, in: 24...72, step: 2) {
-				Text(thumbnailSizeLabel)
-#if os(macOS)
-					.frame(width: 72, alignment: .trailing)
-#endif
-			}
-			.disabled(!service.loadArticleImages)
-		}
-
-		readingDivider
-
-		readingRow("Thumbnail aspect ratio") {
-			Picker("Thumbnail aspect ratio", selection: $service.articleThumbnailAspectRatio) {
-				ForEach(ThumbnailAspectRatio.allCases) { ratio in
-					Text(ratio.label).tag(ratio)
+		
+		if (service.loadArticleImages) {
+			
+			readingDivider
+			
+			readingRow("Size") {
+				HStack {
+					#if !os(macOS)
+					Text("Size")
+					#endif
+					Spacer()
+					Text("\(service.articleThumbnailSize) pt")
+					Stepper(value: $service.articleThumbnailSize, in: 24...72, step: 2) {
+					}
 				}
+				.disabled(!service.loadArticleImages)
 			}
-#if os(macOS)
-			.labelsHidden()
-			.pickerStyle(.menu)
-			.frame(width: 180)
-#endif
-			.disabled(!service.loadArticleImages || service.thumbnailDisplayMode == .favicon)
-		}
-
-		readingDivider
-
-		readingRow("Thumbnail style") {
-			Picker("Thumbnail style", selection: $service.thumbnailDisplayMode) {
-				ForEach(ThumbnailDisplayMode.allCases) { mode in
-					Text(mode.label).tag(mode)
+			
+			readingDivider
+			
+			readingRow("Style") {
+				Picker("Style", selection: $service.thumbnailDisplayMode) {
+					ForEach(ThumbnailDisplayMode.allCases) { mode in
+						Text(mode.label).tag(mode)
+					}
 				}
-			}
 #if os(macOS)
-			.labelsHidden()
-			.pickerStyle(.menu)
-			.frame(width: 180)
+				.labelsHidden()
 #endif
-			.disabled(!service.loadArticleImages)
+				.disabled(!service.loadArticleImages)
+			}
+			
+			if (service.thumbnailDisplayMode == .articleThumbnail) {
+				
+				readingDivider
+				
+				readingRow("Aspect ratio") {
+					Picker("Aspect ratio", selection: $service.articleThumbnailAspectRatio) {
+						ForEach(ThumbnailAspectRatio.allCases) { ratio in
+							Text(ratio.label).tag(ratio)
+						}
+					}
+#if os(macOS)
+					.labelsHidden()
+#endif
+					.disabled(!service.loadArticleImages || service.thumbnailDisplayMode == .favicon)
+				}
+				
+			}
+			
+			
 		}
 	}
 
 	@ViewBuilder
 	private var articleOpeningContent: some View {
-		readingRow("Open articles in the default browser") {
-			platformToggle("Open articles in the default browser", isOn: $service.preferExternalBrowser)
+		readingRow("Always open articles in a browser") {
+			platformToggle("Always open articles in a browser", isOn: $service.preferExternalBrowser)
 		}
 
 #if !os(macOS)
@@ -133,18 +141,9 @@ struct ReadingSettingsTabView: View {
 	    @ViewBuilder
 	    private func platformToggle(_ title: String, isOn: Binding<Bool>) -> some View {
 		Toggle(title, isOn: isOn)
+					.toggleStyle(.switch)
 #if os(macOS)
 		    .labelsHidden()
-		    .toggleStyle(.switch)
-		    .controlSize(.large)
-#endif
-	}
-
-	private var thumbnailSizeLabel: String {
-#if os(macOS)
-		"\(service.articleThumbnailSize) pt"
-#else
-		"Thumbnail size: \(service.articleThumbnailSize) pt"
 #endif
 	}
 }

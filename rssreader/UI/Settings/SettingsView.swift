@@ -11,7 +11,8 @@ struct SettingsView: View {
 		@State private var isRunningDNSCheck = false
 		@State private var testResult: TestResult?
 		@State private var dnsResult: TestResult?
-		@State private var selectedTab: SettingsTab = .connection
+		@AppStorage("settings.selectedTab") private var storedSelectedTabRawValue = SettingsTab.defaultTab.rawValue
+		@State private var selectedTab: SettingsTab = SettingsTab.defaultTab
 		@State private var columnVisibility: NavigationSplitViewVisibility = .all
 
 		private var allTabs: [SettingsTab] {
@@ -30,10 +31,14 @@ struct SettingsView: View {
 				currentTabIndex == allTabs.count - 1
 		}
 
-		enum SettingsTab: Hashable {
+		enum SettingsTab: String, Hashable, CaseIterable {
 				case read
 				case connection
 				case autoRefresh
+
+				static var defaultTab: SettingsTab {
+						allCases.first ?? .read
+				}
 
 				var title: String {
 						switch self {
@@ -79,10 +84,13 @@ struct SettingsView: View {
 				macSettingsLayout
 //            .frame(minWidth: 880, minHeight: 600)
 				.onAppear {
-						selectedTab = .connection
+						restoreSelectedTab()
 						url      = service.serverURL
 						username = service.username
 						password = service.password
+				}
+				.onChange(of: selectedTab) {
+						storedSelectedTabRawValue = selectedTab.rawValue
 				}
 				.onDisappear {
 						applyToService()
@@ -99,10 +107,13 @@ struct SettingsView: View {
 								}
 				}
 				.onAppear {
-						selectedTab = .connection
+						restoreSelectedTab()
 						url      = service.serverURL
 						username = service.username
 						password = service.password
+				}
+				.onChange(of: selectedTab) {
+						storedSelectedTabRawValue = selectedTab.rawValue
 				}
 #endif
 		}
@@ -252,6 +263,14 @@ struct SettingsView: View {
 				selectedTab = allTabs[index + 1]
 		}
 
+		private func restoreSelectedTab() {
+				if let restoredTab = SettingsTab(rawValue: storedSelectedTabRawValue) {
+						selectedTab = restoredTab
+				} else {
+						selectedTab = SettingsTab.defaultTab
+				}
+		}
+
 		@ViewBuilder
 		private func resultLabel(_ result: TestResult) -> some View {
 				switch result {
@@ -266,5 +285,3 @@ struct SettingsView: View {
 				}
 		}
 }
-
-extension SettingsView.SettingsTab: CaseIterable {}

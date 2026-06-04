@@ -99,12 +99,16 @@ struct SettingsView: View {
 #else
 				NavigationStack {
 						settingsTabs
-								.navigationTitle("Settings")
 								.toolbar {
+										ToolbarItem(placement: .principal) {
+												Text("Settings")
+														.font(.headline)
+										}
 										ToolbarItem(placement: .topBarTrailing) {
 												Button("Done") { dismiss() }
 										}
 								}
+								.toolbarTitleDisplayMode(.inline)
 				}
 				.onAppear {
 						restoreSelectedTab()

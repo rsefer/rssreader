@@ -6,7 +6,7 @@ struct ShareLinkButton: View {
 
 	var body: some View {
 		if let url = item.url {
-			ShareLink(item: url, subject: Text(item.title), message: Text(item.title)) {
+			ShareLink(item: url) {
 				Label("Share this article", systemImage: "square.and.arrow.up")
 			}
 			.help("Share this article")

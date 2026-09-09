@@ -102,6 +102,11 @@ struct FeedView: View {
 						.padding(.bottom, 8)
 						.transition(.move(edge: .top).combined(with: .opacity))
 				}
+				#if os(macOS)
+					FeedCountsView()
+						.environmentObject(service)
+						.padding(.bottom, (service.selectedSubscriptionID) != nil ? 8 : 12)
+				#endif
 				Divider()
 				Group {
 					if service.items.isEmpty && !service.isLoading {
@@ -166,15 +171,8 @@ struct FeedView: View {
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 			.navigationTitle("")
+			#if os(iOS)
 			.toolbar {
-				#if os(macOS)
-				if isSidebarVisible {
-					ToolbarItem(placement: .principal) {
-						FeedCountsView()
-							.environmentObject(service)
-					}
-				}
-				#else
 				ToolbarItemGroup(placement: .navigation) {
 					OpenSettingsButton(openSettings: openSettings)
 				}
@@ -189,9 +187,7 @@ struct FeedView: View {
 					MarkAllAsReadButton()
 						.environmentObject(service)
 				}
-				#endif
 			}
-			#if os(iOS)
 			.navigationBarTitleDisplayMode(.inline)
 			#endif
     }

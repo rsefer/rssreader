@@ -372,7 +372,7 @@ struct DetailView: View {
 
 		private func removePaywalls() {
 				guard let currentWebURL,
-							let removePaywallsURL = makeRemovePaywallsURL(for: currentWebURL) else { return }
+							let removePaywallsURL = makeArchiveButtonsURL(for: currentWebURL) else { return }
 
 				self.currentWebURL = removePaywallsURL
 				editableURLText = removePaywallsURL.absoluteString
@@ -386,8 +386,13 @@ struct DetailView: View {
 				}
 		}
 
-		private func makeRemovePaywallsURL(for url: URL) -> URL? {
-				URL(string: "https://removepaywalls.com/\(url.absoluteString)")
+		private func makeArchiveButtonsURL(for url: URL) -> URL? {
+				var components = URLComponents()
+				components.scheme = "https"
+				components.host = "www.archivebuttons.com"
+				components.path = "/articles"
+				components.queryItems = [URLQueryItem(name: "article", value: url.absoluteString)]
+				return components.url
 		}
 
 		private func normalizedWebURL(from rawValue: String) -> URL? {

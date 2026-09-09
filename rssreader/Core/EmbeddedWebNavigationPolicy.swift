@@ -2,7 +2,7 @@ import Foundation
 
 enum EmbeddedWebNavigationPolicy {
 	private static let embeddedHostSuffixes: [String] = [
-		"removepaywalls.com"
+		"archivebuttons.com"
 	]
 
 	// Keep explicit auth/account route markers embedded so cross-domain sign-in flows

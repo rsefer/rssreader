@@ -55,7 +55,7 @@ struct ContentView: View {
 
 	private var useSplitLayout: Bool {
 			#if os(iOS)
-			UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
+			horizontalSizeClass == .regular
 			#else
 			false
 			#endif
@@ -85,29 +85,12 @@ struct ContentView: View {
 					)
 					.navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 420)
 			} detail: {
-					GeometryReader { proxy in
-							let sidebarVisibleByWidth = isIPadSidebarVisible(detailWidth: proxy.size.width)
-							let sidebarVisibleBySplitState = splitColumnVisibility != .detailOnly
-							detailContent(isSidebarVisible: sidebarVisibleBySplitState || sidebarVisibleByWidth)
-									.frame(maxWidth: .infinity, maxHeight: .infinity)
-					}
+					DetailColumnSidebarAwareContent(
+							isSidebarVisibleBySplitState: splitColumnVisibility != .detailOnly,
+							content: detailContent
+					)
 			}
 			.navigationSplitViewStyle(.balanced)
-	}
-
-	private func isIPadSidebarVisible(detailWidth: CGFloat) -> Bool {
-			#if os(iOS)
-			guard UIDevice.current.userInterfaceIdiom == .pad else {
-					return false
-			}
-
-		let screenWidth = UIApplication.shared.connectedScenes
-			.compactMap { ($0 as? UIWindowScene)?.screen }
-			.first?.bounds.width ?? 0
-		return detailWidth < (screenWidth - 40)
-		#else
-		false
-		#endif
 	}
 
 	private var macNavigation: some View {
@@ -196,7 +179,7 @@ struct ContentView: View {
 							selectNext()
 					}
 					#if os(iOS)
-					.platformSettingsPresentation(isPresented: $logic.showSettings) {
+					.platformSettingsPresentation(horizontalSizeClass: horizontalSizeClass, isPresented: $logic.showSettings) {
 							SettingsView()
 									.environmentObject(service)
 					}
@@ -216,5 +199,21 @@ struct ContentView: View {
 					.platformOpenSelectedItemShortcut(url: selectedItem?.url) { url in
 							openURL(url)
 					}
+	}
+}
+
+/// SwiftUI narrows this column's `horizontalSizeClass` to `.compact` when the
+/// split view collapses the sidebar to make room (e.g. multitasking, Stage Manager,
+/// or an unfolded/folded foldable device), so we read it locally instead of
+/// comparing raw pixel widths.
+private struct DetailColumnSidebarAwareContent<Content: View>: View {
+	@Environment(\.horizontalSizeClass) private var horizontalSizeClass
+	let isSidebarVisibleBySplitState: Bool
+	let content: (Bool) -> Content
+
+	var body: some View {
+		let isSidebarVisible = isSidebarVisibleBySplitState || horizontalSizeClass == .regular
+		content(isSidebarVisible)
+			.frame(maxWidth: .infinity, maxHeight: .infinity)
 	}
 }

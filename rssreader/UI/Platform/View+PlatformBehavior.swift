@@ -14,11 +14,12 @@ extension View {
 
     @ViewBuilder
     func platformSettingsPresentation<Content: View>(
+        horizontalSizeClass: UserInterfaceSizeClass?,
         isPresented: Binding<Bool>,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
         #if os(iOS)
-        if UIDevice.current.userInterfaceIdiom == .phone {
+        if horizontalSizeClass == .compact {
             self.fullScreenCover(isPresented: isPresented, content: content)
         } else {
             self.sheet(isPresented: isPresented, content: content)

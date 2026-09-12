@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DetailView: View {
 		@Environment(\.openURL) private var openURL
+		@Environment(\.horizontalSizeClass) private var horizontalSizeClass
 		@EnvironmentObject private var service: FreshRSSService
 
 		let item: FeedItem
@@ -39,14 +40,7 @@ struct DetailView: View {
 
 		private var shouldShowGlobalButtonsToolbarItemGroup: Bool {
 				#if os(iOS)
-				switch UIDevice.current.userInterfaceIdiom {
-				case .phone:
-						false
-				case .pad:
-						!isSidebarVisible
-				default:
-						true
-				}
+				horizontalSizeClass == .compact ? false : !isSidebarVisible
 				#else
 				true
 				#endif
@@ -54,7 +48,7 @@ struct DetailView: View {
 
 	private var previousNextItemButtonsLocation: ToolbarItemPlacement {
 		#if os(iOS)
-		if isIPhone {
+		if horizontalSizeClass == .compact {
 			return .bottomBar
 		}
 		#endif
@@ -63,20 +57,12 @@ struct DetailView: View {
 
 	private var itemActionsButtonsLocation: ToolbarItemPlacement {
 		#if os(iOS)
-		if isIPhone {
+		if horizontalSizeClass == .compact {
 			return .bottomBar
 		}
 		#endif
 		return .primaryAction
 	}
-
-		private var isIPhone: Bool {
-				#if os(iOS)
-				UIDevice.current.userInterfaceIdiom == .phone
-				#else
-				false
-				#endif
-		}
 
 		private struct URLBarAnimationState: Equatable {
 			let isVisible: Bool

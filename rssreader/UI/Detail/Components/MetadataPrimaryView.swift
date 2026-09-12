@@ -21,13 +21,26 @@ struct MetadataPrimaryView: View {
 	private var shouldShowSystemImages: Bool {
 		context == .detail
 	}
-
+	
 	@ViewBuilder
-	private func metadataValue(_ text: String, systemImage: String) -> some View {
-		if shouldShowSystemImages {
-			Label(text, systemImage: systemImage)
-		} else {
-			Text(text)
+	private func metadataValue(_ text: String, faviconURL: URL? = nil, systemImage: String? = nil) -> some View {
+		HStack(spacing: 5) {
+			if shouldShowSystemImages && systemImage != nil {
+				Label(text, systemImage: systemImage ?? "newspaper")
+			} else {
+				if faviconURL != nil {
+					RemoteThumbnailView(
+						primaryURL: faviconURL,
+						fallbackURL: nil as URL?,
+						loadImages: true,
+						width: 14,
+						height: 14,
+						cornerRadius: 3,
+						placeholderSystemName: "newspaper"
+					)
+				}
+				Text(text)
+			}
 		}
 	}
 
@@ -43,26 +56,9 @@ struct MetadataPrimaryView: View {
 				placeholderSystemName: "newspaper"
 			)
 		}
-		if context == .detail {
-			HStack(spacing: 5) {
-				RemoteThumbnailView(
-					primaryURL: item.googleFaviconURL,
-					fallbackURL: nil as URL?,
-					loadImages: true,
-					width: 14,
-					height: 14,
-					cornerRadius: 3,
-					placeholderSystemName: "newspaper"
-				)
-				Text(item.publication)
-					.font(.caption)
-					.foregroundStyle(.secondary)
-			}
-		} else {
-			metadataValue(item.publication, systemImage: "newspaper")
-				.font(.caption)
-				.foregroundStyle(.secondary)
-		}
+		metadataValue(item.publication, faviconURL: context == .detail ? item.googleFaviconURL : nil, systemImage: context == .detail ? nil : "newspaper")
+			.font(.caption)
+			.foregroundStyle(.secondary)
 
 
 		if let author = item.author, !author.isEmpty && context == .detail {

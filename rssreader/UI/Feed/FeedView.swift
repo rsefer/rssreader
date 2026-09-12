@@ -160,7 +160,7 @@ struct FeedView: View {
 							.padding(.top, 8)
 							#endif
 							.platformFeedListStyle()
-							.platformFeedListRefreshable {
+							.refreshable {
 									await service.syncCurrentMode()
 							}
 							.transition(.opacity)

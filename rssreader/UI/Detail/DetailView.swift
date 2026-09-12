@@ -38,14 +38,6 @@ struct DetailView: View {
 				item.publicationIconURL
 		}
 
-		private var shouldShowGlobalButtonsToolbarItemGroup: Bool {
-				#if os(iOS)
-				horizontalSizeClass == .compact ? false : !isSidebarVisible
-				#else
-				true
-				#endif
-		}
-
 	private var previousNextItemButtonsLocation: ToolbarItemPlacement {
 		#if os(iOS)
 		if horizontalSizeClass == .compact {
@@ -150,7 +142,7 @@ struct DetailView: View {
 				.navigationTitle("")
 				.toolbar {
 
-					if shouldShowGlobalButtonsToolbarItemGroup {
+					if (horizontalSizeClass != .compact && !isSidebarVisible) {
 						ToolbarItemGroup(placement: .platformLeading) {
 							GlobalActionsButtons(openSettings: openSettings)
 								.environmentObject(service)

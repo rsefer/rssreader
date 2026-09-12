@@ -32,20 +32,38 @@ struct MetadataPrimaryView: View {
 	}
 
 	var body: some View {
-		if thumbnailDisplayMode != .favicon {
+		if context != .detail && (thumbnailDisplayMode != .favicon || !loadImages) {
 			RemoteThumbnailView(
 				primaryURL: item.googleFaviconURL,
 				fallbackURL: nil as URL?,
-				loadImages: loadImages,
+				loadImages: thumbnailDisplayMode != .favicon || !loadImages,
 				width: 14,
 				height: 14,
 				cornerRadius: 3,
 				placeholderSystemName: "newspaper"
 			)
 		}
-		metadataValue(item.publication, systemImage: "newspaper")
-			.font(.caption)
-			.foregroundStyle(.secondary)
+		if context == .detail {
+			HStack(spacing: 5) {
+				RemoteThumbnailView(
+					primaryURL: item.googleFaviconURL,
+					fallbackURL: nil as URL?,
+					loadImages: true,
+					width: 14,
+					height: 14,
+					cornerRadius: 3,
+					placeholderSystemName: "newspaper"
+				)
+				Text(item.publication)
+					.font(.caption)
+					.foregroundStyle(.secondary)
+			}
+		} else {
+			metadataValue(item.publication, systemImage: "newspaper")
+				.font(.caption)
+				.foregroundStyle(.secondary)
+		}
+
 
 		if let author = item.author, !author.isEmpty && context == .detail {
 			metadataValue(author, systemImage: "person")

@@ -23,14 +23,16 @@ struct FeedItemRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            FeedRowThumbnail(
-                primaryURL: primaryThumbnailURL,
-                fallbackURL: fallbackThumbnailURL,
-                loadImages: loadImages,
-                size: thumbnailSize,
-                aspectRatio: thumbnailAspectRatio,
-                displayMode: thumbnailDisplayMode
-            )
+            if loadImages {
+                FeedRowThumbnail(
+                    primaryURL: primaryThumbnailURL,
+                    fallbackURL: fallbackThumbnailURL,
+                    loadImages: loadImages,
+                    size: thumbnailSize,
+                    aspectRatio: thumbnailAspectRatio,
+                    displayMode: thumbnailDisplayMode
+                )
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top, spacing: 8) {

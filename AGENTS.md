@@ -5,7 +5,8 @@ This document serves as a guide to leveraging agents for working within this rep
 ## Overview
 
 **General Context**
-  - Always consider that the app needs to work in the following contexts: iPhone, iPad, macOS
+  - Always consider that the app needs to work in the following contexts: iPhone, iPhone Duo (in all scenarios), iPad, macOS
+	- Assume we should be targeting the latest operating system versions: iOS 27, iPadOS 27, macOS 27 without backward compatibility constraints.
 	- Extract reusable UI-related code into components whenever possible
 
 **Code Standards:**
@@ -30,5 +31,5 @@ This document serves as a guide to leveraging agents for working within this rep
 - Read before writing. Understand the problem before coding.
 - No redundant file reads. Read each file once.
 - One focused coding pass. Avoid write-delete-rewrite cycles.
-- Test once, fix if needed, verify once. No unnecessary iterations.
+- Test once if necessary, fix if needed, verify once. No unnecessary iterations.
 - Budget: 50 tool calls maximum. Work efficiently.

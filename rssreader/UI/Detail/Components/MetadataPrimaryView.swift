@@ -8,10 +8,14 @@ struct MetadataPrimaryView: View {
 
 	let item: FeedItem
 	let context: Context
+	let thumbnailDisplayMode: ThumbnailDisplayMode
+	let loadImages: Bool
 
-	init(item: FeedItem, context: Context = .detail) {
+	init(item: FeedItem, context: Context = .detail, thumbnailDisplayMode: ThumbnailDisplayMode, loadImages: Bool) {
 		self.item = item
 		self.context = context
+		self.thumbnailDisplayMode = thumbnailDisplayMode
+		self.loadImages = loadImages
 	}
 
 	private var shouldShowSystemImages: Bool {
@@ -28,6 +32,17 @@ struct MetadataPrimaryView: View {
 	}
 
 	var body: some View {
+		if thumbnailDisplayMode != .favicon {
+			RemoteThumbnailView(
+				primaryURL: item.googleFaviconURL,
+				fallbackURL: nil as URL?,
+				loadImages: loadImages,
+				width: 14,
+				height: 14,
+				cornerRadius: 3,
+				placeholderSystemName: "newspaper"
+			)
+		}
 		metadataValue(item.publication, systemImage: "newspaper")
 			.font(.caption)
 			.foregroundStyle(.secondary)

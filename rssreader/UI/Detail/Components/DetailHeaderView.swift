@@ -63,7 +63,7 @@ struct DetailHeaderView: View {
                 }
 
 								VStack(alignment: .leading, spacing: 3) {
-										MetadataPrimaryView(item: item)
+										MetadataPrimaryView(item: item, thumbnailDisplayMode: thumbnailDisplayMode, loadImages: loadImages)
 										linkView
 								}
                     .padding(.leading, compactMetadataLeadingInset)
@@ -78,7 +78,7 @@ struct DetailHeaderView: View {
                         .lineLimit(3)
 
 										HStack(spacing: 8) {
-											MetadataPrimaryView(item: item)
+											MetadataPrimaryView(item: item, thumbnailDisplayMode: thumbnailDisplayMode, loadImages: loadImages)
 										}
                     linkView
                 }

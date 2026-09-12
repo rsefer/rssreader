@@ -46,7 +46,7 @@ struct FeedItemRow: View {
                 }
 
                 HStack(alignment: .center, spacing: 6) {
-									MetadataPrimaryView(item: item, context: .feed)
+									MetadataPrimaryView(item: item, context: .feed, thumbnailDisplayMode: thumbnailDisplayMode, loadImages: loadImages)
                 }
             }
         }

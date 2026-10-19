@@ -188,7 +188,7 @@ struct FeedView: View {
 						.environmentObject(service)
 				}
 			}
-			.navigationBarTitleDisplayMode(.inline)
+			.toolbarTitleDisplayMode(.inline)
 			#endif
     }
 

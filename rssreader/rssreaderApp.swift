@@ -26,11 +26,10 @@ struct rssreaderApp: App {
 			AppCommands(service: service)
 		}
 
-		Window("Settings", id: "settings") {
+		Settings {
 			SettingsView()
 				.environmentObject(service)
 		}
-		.windowStyle(.hiddenTitleBar)
 		.windowResizability(.contentSize)
 		#else
 		WindowGroup {

@@ -3,17 +3,9 @@ import SwiftUI
 #if os(macOS)
 struct AppCommands: Commands {
 	let service: FreshRSSService
-	@Environment(\.openWindow) private var openWindow
 
 	var body: some Commands {
 		CommandGroup(replacing: .newItem) {}
-
-		CommandGroup(replacing: .appSettings) {
-			Button("Settings…") {
-				openWindow(id: "settings")
-			}
-			.keyboardShortcut(",", modifiers: .command)
-		}
 
 		CommandMenu("Feeds") {
 			SyncButton()

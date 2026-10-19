@@ -89,8 +89,8 @@ struct SettingsView: View {
 						username = service.username
 						password = service.password
 				}
-				.onChange(of: selectedTab) {
-						storedSelectedTabRawValue = selectedTab.rawValue
+				.onChange(of: selectedTab) { _, newValue in
+						storedSelectedTabRawValue = newValue.rawValue
 				}
 				.onDisappear {
 						applyToService()
@@ -116,8 +116,8 @@ struct SettingsView: View {
 						username = service.username
 						password = service.password
 				}
-				.onChange(of: selectedTab) {
-						storedSelectedTabRawValue = selectedTab.rawValue
+				.onChange(of: selectedTab) { _, newValue in
+						storedSelectedTabRawValue = newValue.rawValue
 				}
 #endif
 		}
@@ -139,24 +139,25 @@ struct SettingsView: View {
 								.padding(.horizontal, 12)
 								.frame(maxWidth: 760, alignment: .leading)
 						}
+						.toolbar {
+								ToolbarItemGroup(placement: .navigation) {
+										ControlGroup {
+											Button(action: navigateBack) {
+												Label("Back", systemImage: "chevron.left")
+											}
+											.disabled(isFirstTab)
+
+											Button(action: navigateForward) {
+												Label("Forward", systemImage: "chevron.right")
+											}
+											.disabled(isLastTab)
+										}
+										.controlGroupStyle(.navigation)
+								}
+						}
 				}
 				.navigationSplitViewStyle(.balanced)
-				.toolbar {
-										ToolbarItemGroup(placement: .navigation) {
-												ControlGroup {
-														Button(action: navigateBack) {
-																Label("Back", systemImage: "chevron.left")
-														}
-														.disabled(isFirstTab)
-
-														Button(action: navigateForward) {
-																Label("Forward", systemImage: "chevron.right")
-														}
-														.disabled(isLastTab)
-												}
-												.controlGroupStyle(.navigation)
-										}
-								}
+				.toolbar(removing: .sidebarToggle)
 		}
 
 		@ViewBuilder
@@ -186,35 +187,29 @@ struct SettingsView: View {
 
 		private var settingsTabs: some View {
 				TabView(selection: $selectedTab) {
-						ReadingSettingsTabView()
-								.tabItem {
-										Label("Reading", systemImage: "book")
-								}
-								.tag(SettingsTab.read)
+						Tab("Reading", systemImage: "book", value: SettingsTab.read) {
+								ReadingSettingsTabView()
+							}
 
-						ConnectionSettingsTabView(
-								url: $url,
-								username: $username,
-								password: $password,
-								isTesting: $isTesting,
-								isRunningDNSCheck: $isRunningDNSCheck,
-								testResult: $testResult,
-								dnsResult: $dnsResult,
-								runDNSCheck: runDNSCheck,
-								testConnection: testConnection,
-								saveAndDismiss: saveAndDismiss,
-								resultLabel: { AnyView(resultLabel($0)) }
-						)
-						.tabItem {
-								Label("Connection", systemImage: "network")
-						}
-						.tag(SettingsTab.connection)
+						Tab("Connection", systemImage: "network", value: SettingsTab.connection) {
+								ConnectionSettingsTabView(
+									url: $url,
+									username: $username,
+									password: $password,
+									isTesting: $isTesting,
+									isRunningDNSCheck: $isRunningDNSCheck,
+									testResult: $testResult,
+									dnsResult: $dnsResult,
+									runDNSCheck: runDNSCheck,
+									testConnection: testConnection,
+									saveAndDismiss: saveAndDismiss,
+									resultLabel: { AnyView(resultLabel($0)) }
+								)
+							}
 
-						AutoRefreshSettingsTabView()
-								.tabItem {
-										Label("Auto Refresh", systemImage: "arrow.triangle.2.circlepath")
-								}
-								.tag(SettingsTab.autoRefresh)
+						Tab("Auto Refresh", systemImage: "arrow.triangle.2.circlepath", value: SettingsTab.autoRefresh) {
+								AutoRefreshSettingsTabView()
+							}
 				}
 		}
 

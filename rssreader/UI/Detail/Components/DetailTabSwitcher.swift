@@ -1,13 +1,12 @@
 import SwiftUI
 
 struct DetailTabSwitcher: View {
-	@Binding var activeTab: ContentTab
-	let hasWebURL: Bool
+	@Binding var activeTab: DetailTab
 
 	var body: some View {
 		#if os(macOS)
 		Picker("Mode", selection: $activeTab) {
-			ForEach(ContentTab.allCases, id: \.self) { tab in
+			ForEach(DetailTab.allCases, id: \.self) { tab in
 				Image(systemName: tab.icon)
 					.help(tab.rawValue)
 			}
@@ -16,7 +15,7 @@ struct DetailTabSwitcher: View {
 		.fixedSize()
 		#else
 		HStack(spacing: 8) {
-			ForEach(ContentTab.allCases, id: \.self) { tab in
+			ForEach(DetailTab.allCases, id: \.self) { tab in
 				Button {
 					activeTab = tab
 				} label: {
@@ -32,7 +31,6 @@ struct DetailTabSwitcher: View {
 						}
 				}
 				.buttonStyle(.plain)
-				.disabled(tab == .web && !hasWebURL)
 				.accessibilityLabel(tab.rawValue)
 			}
 		}

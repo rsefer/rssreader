@@ -3,6 +3,7 @@ import SwiftUI
 struct DetailView: View {
 		@Environment(\.openURL) private var openURL
 		@Environment(\.horizontalSizeClass) private var horizontalSizeClass
+		@Environment(\.scenePhase) private var scenePhase
 		@EnvironmentObject private var service: FreshRSSService
 
 		let item: FeedItem
@@ -16,6 +17,9 @@ struct DetailView: View {
 		@State private var editableURLText: String
 		@State private var urlFieldError: String?
 		@State private var webReloadToken = 0
+		@State private var openArticleInApp = false
+		@State private var isAISummaryAvailable = ArticleSummaryController.isAvailable
+		@StateObject private var summaryController = ArticleSummaryController()
 		@FocusState private var isURLFieldFocused: Bool
 
 		init(item: FeedItem, openSettings: @escaping () -> Void = {}, isSidebarVisible: Bool = false) {
@@ -35,6 +39,14 @@ struct DetailView: View {
 
 		private var detailFallbackThumbnailURL: URL? {
 				item.publicationIconURL
+		}
+
+		private var usesExternalBrowser: Bool {
+				service.preferExternalBrowser && !openArticleInApp
+		}
+
+		private var webPageID: String {
+				item.id + "-web-" + (currentWebURL?.absoluteString ?? "") + "-" + String(webReloadToken)
 		}
 
 	private var previousNextItemButtonsLocation: ToolbarItemPlacement {
@@ -88,15 +100,26 @@ struct DetailView: View {
 						}
 						// ── Content area ─────────────────────────────────────────────────
 						ZStack {
+								webPane
+										.opacity(activeTab == .web ? 1 : 0)
+										.allowsHitTesting(activeTab == .web)
+										.accessibilityHidden(activeTab != .web)
+
 								switch activeTab {
 								case .web:
-																webPane
-												.transition(.opacity)
-												.id(DetailTab.web)
+										EmptyView()
 								case .reader:
 										readerPane
 												.transition(.opacity)
 												.id(DetailTab.reader)
+								case .aiSummary:
+										ArticleSummaryView(
+												controller: summaryController,
+												usesExternalBrowser: usesExternalBrowser,
+												openInApp: { openArticleInApp = true },
+												retry: { summaryController.requestSummary(for: webPageID) }
+										)
+										.transition(.opacity)
 								}
 						}
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -108,11 +131,30 @@ struct DetailView: View {
 				.onChange(of: item.id, initial: false) { _, _ in
 						lastAutoOpenedItemID = nil
 						activeTab = .web
+						openArticleInApp = false
 						currentWebURL = item.url
 						webReloadToken = 0
 						editableURLText = item.url?.absoluteString ?? ""
 						urlFieldError = nil
 						isURLBarVisible = false
+				}
+				.onChange(of: activeTab, initial: false) { _, tab in
+						if tab == .aiSummary && !usesExternalBrowser {
+								summaryController.requestSummary(for: webPageID)
+						}
+				}
+				.onChange(of: summaryController.pageRevision, initial: false) { _, _ in
+						if activeTab == .aiSummary && !usesExternalBrowser {
+								summaryController.requestSummary(for: webPageID)
+						}
+				}
+				.onChange(of: scenePhase, initial: true) { _, phase in
+						if phase == .active {
+								isAISummaryAvailable = ArticleSummaryController.isAvailable
+								if !isAISummaryAvailable && activeTab == .aiSummary {
+										activeTab = .web
+								}
+						}
 				}
 				.onChange(of: isURLBarVisible, initial: false) { _, isVisible in
 						if isVisible {
@@ -151,7 +193,7 @@ struct DetailView: View {
 
 					if currentWebURL != nil {
 						ToolbarItem(placement: .primaryAction) {
-							DetailTabSwitcher(activeTab: $activeTab)
+							DetailTabSwitcher(activeTab: $activeTab, isAISummaryAvailable: isAISummaryAvailable)
 						}
 					}
 
@@ -230,10 +272,10 @@ struct DetailView: View {
 		@ViewBuilder
 		private var webContent: some View {
 						if let url = currentWebURL {
-								if service.preferExternalBrowser {
+								if usesExternalBrowser {
 									externalBrowserPane(url: url)
 								} else {
-										WebView(source: .url(url), itemID: item.id + "-web-" + url.absoluteString + "-" + String(webReloadToken))
+										WebView(source: .url(url), itemID: webPageID, summaryController: summaryController)
 												.frame(maxWidth: .infinity, maxHeight: .infinity)
 								}
 						} else {
@@ -289,7 +331,7 @@ struct DetailView: View {
 		}
 
 		private func openInBrowserIfNeeded() {
-				guard service.preferExternalBrowser, activeTab == .web, lastAutoOpenedItemID != item.id else {
+				guard usesExternalBrowser, activeTab == .web, lastAutoOpenedItemID != item.id else {
 						return
 				}
 
@@ -330,7 +372,7 @@ struct DetailView: View {
 		private func reloadCurrentWebPage() {
 				guard currentWebURL != nil else { return }
 
-				if service.preferExternalBrowser {
+				if usesExternalBrowser {
 						lastAutoOpenedItemID = nil
 						openInBrowser()
 						return
@@ -350,7 +392,7 @@ struct DetailView: View {
 				webReloadToken = 0
 				activeTab = .web
 
-				if service.preferExternalBrowser {
+				if usesExternalBrowser {
 						openInBrowser()
 				}
 		}

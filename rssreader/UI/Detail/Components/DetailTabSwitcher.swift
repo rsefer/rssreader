@@ -2,20 +2,27 @@ import SwiftUI
 
 struct DetailTabSwitcher: View {
 	@Binding var activeTab: DetailTab
+	let isAISummaryAvailable: Bool
+
+	private var tabs: [DetailTab] {
+		DetailTab.allCases.filter { $0 != .aiSummary || isAISummaryAvailable }
+	}
 
 	var body: some View {
 		#if os(macOS)
 		Picker("Mode", selection: $activeTab) {
-			ForEach(DetailTab.allCases, id: \.self) { tab in
+			ForEach(tabs, id: \.self) { tab in
 				Image(systemName: tab.icon)
 					.help(tab.rawValue)
+					.accessibilityLabel(tab.rawValue)
+					.tag(tab)
 			}
 		}
 		.pickerStyle(.segmented)
 		.fixedSize()
 		#else
 		HStack(spacing: 8) {
-			ForEach(DetailTab.allCases, id: \.self) { tab in
+			ForEach(tabs, id: \.self) { tab in
 				Button {
 					activeTab = tab
 				} label: {

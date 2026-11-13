@@ -177,9 +177,27 @@ struct WebView: PlatformViewRepresentable {
     let source: Source
     /// A unique identifier so updates only reload when the source actually changes.
     let itemID: String
+    var summaryController: ArticleSummaryController?
 
-    func makeCoordinator() -> ExternalLinkNavigationCoordinator {
-        ExternalLinkNavigationCoordinator()
+    static var articleTextScript: String {
+        """
+        (() => {
+            const html = \(ReaderContentExtractor.extractionScript);
+            if (!html) return "";
+            const parsedDocument = new DOMParser().parseFromString(html, "text/html");
+            parsedDocument.body.querySelectorAll("br").forEach(element => element.replaceWith("\\n"));
+            parsedDocument.body.querySelectorAll("h1, h2, h3, h4, p, li, div, section, blockquote, pre")
+                .forEach(element => element.append("\\n\\n"));
+            return (parsedDocument.body.textContent || "")
+                .replace(/[ \\t\\f\\r]+/g, " ")
+                .replace(/\\n(?:\\s*\\n)+/g, "\\n\\n")
+                .trim();
+        })()
+        """
+    }
+
+    func makeCoordinator() -> WebCoordinator {
+        WebCoordinator(summaryController: summaryController)
     }
 
     #if os(macOS)
@@ -210,15 +228,45 @@ struct WebView: PlatformViewRepresentable {
         return webView
     }
 
-    private func loadSourceIfNeeded(on webView: WKWebView, coordinator: ExternalLinkNavigationCoordinator) {
+    private func loadSourceIfNeeded(on webView: WKWebView, coordinator: WebCoordinator) {
+        coordinator.summaryController = summaryController
         guard coordinator.lastItemID != itemID else { return }
         coordinator.updateLastItemID(itemID)
 
         switch source {
         case .url(let url):
-            webView.load(URLRequest(url: url))
+            coordinator.currentNavigation = webView.load(URLRequest(url: url))
         case .html(let html):
-            webView.loadHTMLString(html, baseURL: nil)
+            coordinator.currentNavigation = webView.loadHTMLString(html, baseURL: nil)
+        }
+    }
+
+    final class WebCoordinator: ExternalLinkNavigationCoordinator {
+        weak var summaryController: ArticleSummaryController?
+        var currentNavigation: WKNavigation?
+
+        init(summaryController: ArticleSummaryController?) {
+            self.summaryController = summaryController
+        }
+
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            currentNavigation = navigation
+            summaryController?.pageWillLoad(webView, pageID: lastItemID)
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            guard navigation === currentNavigation else { return }
+            summaryController?.pageDidLoad(webView, pageID: lastItemID)
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            guard navigation === currentNavigation else { return }
+            summaryController?.pageDidFail(webView, pageID: lastItemID, error: error)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            guard navigation === currentNavigation else { return }
+            summaryController?.pageDidFail(webView, pageID: lastItemID, error: error)
         }
     }
 }

@@ -77,8 +77,49 @@ return best.innerHTML || '';
 })();
 """#
 
-static func readerHTML(body: String, sourceURL: URL) -> String {
-"""
+/// The Mozilla Readability.js source, bundled as an app resource.
+static let readabilitySource: String = {
+guard let url = Bundle.main.url(forResource: "Readability", withExtension: "js"),
+let source = try? String(contentsOf: url, encoding: .utf8) else {
+NSLog("Readability.js resource is missing from the app bundle.")
+return ""
+}
+return source
+}()
+
+/// Runs Readability against a clone of the live page DOM and posts the parsed
+/// article back to native code through the `readerContent` message handler.
+static func readabilityRunnerScript() -> String {
+#"""
+(() => {
+const post = (payload) => {
+window.webkit?.messageHandlers?.readerContent?.postMessage(payload);
+};
+try {
+\#(readabilitySource)
+const article = new Readability(document.cloneNode(true)).parse();
+if (article && article.content) {
+post({
+content: article.content,
+title: article.title || "",
+byline: article.byline || ""
+});
+} else {
+post({ error: "Readability returned no content." });
+}
+} catch (error) {
+post({ error: String(error) });
+}
+})();
+"""#
+}
+
+static func readerHTML(body: String, sourceURL: URL, title: String = "", byline: String = "") -> String {
+let escapedTitle = escapeHTML(title)
+let escapedByline = escapeHTML(byline)
+let heading = escapedTitle.isEmpty ? "" : "<h1 class=\"reader-title\">\(escapedTitle)</h1>"
+let bylineBlock = escapedByline.isEmpty ? "" : "<p class=\"reader-byline\">\(escapedByline)</p>"
+return """
 <!DOCTYPE html>
 <html>
 <head>
@@ -116,6 +157,11 @@ border-radius: 999px;
 padding: 5px 10px;
 }
 h1, h2, h3, h4 { line-height: 1.28; margin-top: 1.45em; }
+.reader-title { margin-top: 0.2em; margin-bottom: 0.3em; }
+.reader-byline { margin-top: 0; color: #6b7280; font-size: 14px; }
+@media (prefers-color-scheme: dark) {
+.reader-byline { color: #b3b3b8; }
+}
 img, video, iframe { max-width: 100%; height: auto; border-radius: 8px; }
 pre {
 background: #f5f5f6;
@@ -140,10 +186,20 @@ blockquote { border-color: #4a4a4f; color: #b3b3b8; }
 </head>
 <body>
 <a class="source" href="\(sourceURL.absoluteString)">Source</a>
+\(heading)
+\(bylineBlock)
 \(body)
 </body>
 </html>
 """
+}
+
+static func escapeHTML(_ value: String) -> String {
+value
+.replacingOccurrences(of: "&", with: "&amp;")
+.replacingOccurrences(of: "<", with: "&lt;")
+.replacingOccurrences(of: ">", with: "&gt;")
+.replacingOccurrences(of: "\"", with: "&quot;")
 }
 }
 
@@ -283,8 +339,26 @@ extension ExternalLinkNavigationCoordinator {
     }
 }
 
-/// Loads a webpage, extracts the main content block, and renders a clean reader view.
+/// Forwards script messages to a weakly-held delegate so the
+/// WKUserContentController doesn't retain the coordinator.
+final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    private weak var delegate: WKScriptMessageHandler?
+
+    init(delegate: WKScriptMessageHandler) {
+        self.delegate = delegate
+    }
+
+    func userContentController(_ userContentController: WKUserContentController,
+                               didReceive message: WKScriptMessage) {
+        delegate?.userContentController(userContentController, didReceive: message)
+    }
+}
+
+/// Loads a webpage in an authenticated web session, runs Mozilla Readability.js
+/// against the live DOM, and renders the parsed article as a clean reader view.
 struct ReaderWebView: PlatformViewRepresentable {
+    static let messageHandlerName = "readerContent"
+
     let url: URL
     let itemID: String
     let fallbackHTML: String?
@@ -297,7 +371,7 @@ struct ReaderWebView: PlatformViewRepresentable {
 
     #if os(macOS)
     func makeNSView(context: Context) -> WKWebView {
-        makeWebView(delegate: context.coordinator)
+        makeWebView(coordinator: context.coordinator)
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
@@ -305,7 +379,7 @@ struct ReaderWebView: PlatformViewRepresentable {
     }
     #else
     func makeUIView(context: Context) -> WKWebView {
-        makeWebView(delegate: context.coordinator)
+        makeWebView(coordinator: context.coordinator)
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
@@ -313,10 +387,16 @@ struct ReaderWebView: PlatformViewRepresentable {
     }
     #endif
 
-    private func makeWebView(delegate: WKNavigationDelegate) -> WKWebView {
+    private func makeWebView(coordinator: ReaderCoordinator) -> WKWebView {
         let config = WKWebViewConfiguration()
+        // Shares the default website data store so authenticated sessions carry over.
+        config.websiteDataStore = .default()
+        config.userContentController.add(
+            WeakScriptMessageHandler(delegate: coordinator),
+            name: Self.messageHandlerName
+        )
         let webView = WKWebView(frame: .zero, configuration: config)
-        webView.navigationDelegate = delegate
+        webView.navigationDelegate = coordinator
         #if os(macOS)
         webView.allowsMagnification = true
         #endif
@@ -332,7 +412,7 @@ struct ReaderWebView: PlatformViewRepresentable {
         webView.load(URLRequest(url: url))
     }
 
-    final class ReaderCoordinator: ExternalLinkNavigationCoordinator {
+    final class ReaderCoordinator: ExternalLinkNavigationCoordinator, WKScriptMessageHandler {
         private(set) var currentURL = URL(fileURLWithPath: "/")
         private(set) var fallbackHTML: String?
         var didLoadReaderHTML = false
@@ -346,31 +426,77 @@ struct ReaderWebView: PlatformViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             guard !didLoadReaderHTML else { return }
 
+            guard !ReaderContentExtractor.readabilitySource.isEmpty else {
+                loadLegacyExtraction(in: webView)
+                return
+            }
+
+            webView.evaluateJavaScript(ReaderContentExtractor.readabilityRunnerScript()) { _, error in
+                if let error {
+                    NSLog("Readability runner failed to evaluate: %@", String(describing: error))
+                }
+                // The parsed article (or an error) arrives via the message handler.
+            }
+        }
+
+        func userContentController(_ userContentController: WKUserContentController,
+                                   didReceive message: WKScriptMessage) {
+            guard message.name == ReaderWebView.messageHandlerName,
+                  !didLoadReaderHTML,
+                  let webView = message.webView else { return }
+
+            let body = message.body as? [String: Any]
+            if let errorDescription = body?["error"] as? String {
+                NSLog("Readability parse failed: %@", errorDescription)
+            }
+
+            let content = (body?["content"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let extractedTextLength = ReaderContentExtractor.plainTextLength(fromHTML: content)
+
+            guard extractedTextLength >= ReaderContentExtractor.minimumExtractedTextLength else {
+                loadFallbackHTML(in: webView)
+                return
+            }
+
+            didLoadReaderHTML = true
+            let readerHTML = ReaderContentExtractor.readerHTML(
+                body: content,
+                sourceURL: currentURL,
+                title: body?["title"] as? String ?? "",
+                byline: body?["byline"] as? String ?? ""
+            )
+            webView.loadHTMLString(readerHTML, baseURL: currentURL.deletingLastPathComponent())
+        }
+
+        /// Heuristic DOM extraction used only when Readability.js is unavailable.
+        private func loadLegacyExtraction(in webView: WKWebView) {
             webView.evaluateJavaScript(ReaderContentExtractor.extractionScript) { [weak self, weak webView] result, error in
-                guard let self, let webView else { return }
+                guard let self, let webView, !self.didLoadReaderHTML else { return }
                 if let error {
                     NSLog("Reader extraction script failed: %@", String(describing: error))
                 }
 
                 let extractedBody = (result as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let extractedTextLength = ReaderContentExtractor.plainTextLength(fromHTML: extractedBody)
-                let shouldUseExtracted = extractedTextLength >= ReaderContentExtractor.minimumExtractedTextLength
+
+                guard extractedTextLength >= ReaderContentExtractor.minimumExtractedTextLength else {
+                    self.loadFallbackHTML(in: webView)
+                    return
+                }
 
                 self.didLoadReaderHTML = true
-
-                if shouldUseExtracted {
-                    let readerHTML = ReaderContentExtractor.readerHTML(body: extractedBody, sourceURL: self.currentURL)
-                    webView.loadHTMLString(readerHTML, baseURL: self.currentURL.deletingLastPathComponent())
-                    return
-                }
-
-                let fallbackBody = (self.fallbackHTML ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                if !fallbackBody.isEmpty {
-                    let readerHTML = ReaderContentExtractor.readerHTML(body: fallbackBody, sourceURL: self.currentURL)
-                    webView.loadHTMLString(readerHTML, baseURL: self.currentURL.deletingLastPathComponent())
-                    return
-                }
+                let readerHTML = ReaderContentExtractor.readerHTML(body: extractedBody, sourceURL: self.currentURL)
+                webView.loadHTMLString(readerHTML, baseURL: self.currentURL.deletingLastPathComponent())
             }
+        }
+
+        private func loadFallbackHTML(in webView: WKWebView) {
+            let fallbackBody = (fallbackHTML ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !fallbackBody.isEmpty else { return }
+
+            didLoadReaderHTML = true
+            let readerHTML = ReaderContentExtractor.readerHTML(body: fallbackBody, sourceURL: currentURL)
+            webView.loadHTMLString(readerHTML, baseURL: currentURL.deletingLastPathComponent())
         }
     }
 }

@@ -49,22 +49,12 @@ struct DetailView: View {
 				item.id + "-web-" + (currentWebURL?.absoluteString ?? "") + "-" + String(webReloadToken)
 		}
 
-	private var previousNextItemButtonsLocation: ToolbarItemPlacement {
+	private var usesCompactDetailToolbar: Bool {
 		#if os(iOS)
-		if horizontalSizeClass == .compact {
-			return .bottomBar
-		}
+		return PlatformCapabilities.isPhone || horizontalSizeClass == .compact
+		#else
+		return false
 		#endif
-		return .primaryAction
-	}
-
-	private var itemActionsButtonsLocation: ToolbarItemPlacement {
-		#if os(iOS)
-		if horizontalSizeClass == .compact {
-			return .bottomBar
-		}
-		#endif
-		return .primaryAction
 	}
 
 		private struct URLBarAnimationState: Equatable {
@@ -177,19 +167,20 @@ struct DetailView: View {
 				.navigationTitle("")
 				.toolbar {
 
-					if (horizontalSizeClass != .compact && !isSidebarVisible) {
+					if !usesCompactDetailToolbar && horizontalSizeClass != .compact && !isSidebarVisible {
 						ToolbarItemGroup(placement: .platformLeading) {
 							GlobalActionsButtons(openSettings: openSettings)
 								.environmentObject(service)
 						}
 					}
 
-					ToolbarItemGroup(placement: .navigation) {
-						ControlGroup {
-							ToggleDetailHeader(isHeaderVisible: $isHeaderVisible)
+					if !usesCompactDetailToolbar {
+						ToolbarItemGroup(placement: .navigation) {
+							ControlGroup {
+								ToggleDetailHeader(isHeaderVisible: $isHeaderVisible)
+							}
 						}
 					}
-
 
 					if currentWebURL != nil {
 						ToolbarItem(placement: .primaryAction) {
@@ -197,40 +188,68 @@ struct DetailView: View {
 						}
 					}
 
-						ToolbarItemGroup(placement: itemActionsButtonsLocation) {
+					if usesCompactDetailToolbar {
+						#if os(iOS)
+						ToolbarItem(placement: .bottomBar) {
+							PreviousItemButton()
+						}
+						ToolbarItem(placement: .bottomBar) {
+							NextItemButton()
+						}
+						#endif
+						ToolbarItem(placement: .primaryAction) {
+							Menu("More Actions", systemImage: "ellipsis") {
+								ToggleDetailHeader(isHeaderVisible: $isHeaderVisible)
+								Section {
+									ItemActionsButtons(item: item, isHeaderVisible: $isHeaderVisible)
+										.environmentObject(service)
+								}
+								Section("Web Options") {
+									webOptions
+								}
+								if horizontalSizeClass != .compact && !isSidebarVisible {
+									Section {
+										GlobalActionsButtons(openSettings: openSettings)
+											.environmentObject(service)
+									}
+								}
+							}
+						}
+					} else {
+						ToolbarItemGroup(placement: .primaryAction) {
 								ControlGroup("Item Actions") {
-
 									ItemActionsButtons(item: item, isHeaderVisible: $isHeaderVisible)
 										.environmentObject(service)
 								}
 								.controlGroupStyle(.automatic)
 						}
-
-					ToolbarItemGroup(placement: previousNextItemButtonsLocation) {
-						PreviousNextItemButtons()
-					}
-
-					ToolbarItemGroup(placement: .primaryAction) {
-						Menu("Web Options", systemImage: "ellipsis") {
-							Button(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar", systemImage: isURLBarVisible ? "xmark.circle" : "menubar.rectangle") {
-								toggleURLBar()
-							}
-								.help(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar")
-							Button("Remove Paywalls", systemImage: "lock.open") {
-								removePaywalls()
-							}
-							.disabled(currentWebURL == nil)
-							.help("Open the current page through Remove Paywalls")
-							Button("Refresh Page", systemImage: "arrow.clockwise") {
-								reloadCurrentWebPage()
-							}
-							.help("Refresh Page")
+						ToolbarItemGroup(placement: .primaryAction) {
+							PreviousNextItemButtons()
 						}
-
+						ToolbarItemGroup(placement: .primaryAction) {
+							Menu("Web Options", systemImage: "ellipsis") {
+								webOptions
+							}
+						}
 					}
-
-
 				}
+		}
+
+		@ViewBuilder
+		private var webOptions: some View {
+				Button(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar", systemImage: isURLBarVisible ? "xmark.circle" : "menubar.rectangle") {
+						toggleURLBar()
+				}
+				.help(isURLBarVisible ? "Hide URL Bar" : "Show URL Bar")
+				Button("Remove Paywalls", systemImage: "lock.open") {
+						removePaywalls()
+				}
+				.disabled(currentWebURL == nil)
+				.help("Open the current page through Remove Paywalls")
+				Button("Refresh Page", systemImage: "arrow.clockwise") {
+						reloadCurrentWebPage()
+				}
+				.help("Refresh Page")
 		}
 
 		// MARK: - Header

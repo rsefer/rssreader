@@ -2,6 +2,21 @@
 
 rssreader is a SwiftUI app for iPhone, iPad, and macOS that connects to FreshRSS and presents your feed items with a two-pane reading workflow, inline content viewing, and read/unread management actions.
 
+Unread articles scrolled past the top of the feed are marked with a grey ring
+instead of the unread dot. They remain
+unread until opened or explicitly marked read, including with Mark All as Read.
+Skipped labels are stored locally per FreshRSS account and are not synced between devices.
+
+To run the native macOS feed-scrolling regression checks:
+
+```sh
+swiftc -parse-as-library rssreader/UI/Feed/FeedSkipTracking.swift tests/FeedScrollChecks.swift -o /tmp/feed-scroll-checks
+/tmp/feed-scroll-checks
+```
+
+The checks briefly open a test window and exercise scrolling in a real SwiftUI
+list, including partial visibility, reverse scrolling, filtering, and fast jumps.
+
 On devices with Apple Intelligence available, AI Summary summarizes the article
 shown in the in-app Web view using Apple's on-device model. Summaries are cached
 in memory while the detail view is open and regenerated if the page content

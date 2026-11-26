@@ -3,6 +3,7 @@ import SwiftUI
 struct FeedItemRow: View {
     let item: FeedItem
     let isRead: Bool
+    let isSkipped: Bool
     let loadImages: Bool
     let thumbnailSize: CGFloat
     let thumbnailAspectRatio: ThumbnailAspectRatio
@@ -43,8 +44,8 @@ struct FeedItemRow: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 2)
-										UnreadStatusIndicator(status: isRead)
-											.padding(.top, 4)
+                    FeedReadStatusIndicator(isRead: isRead, isSkipped: isSkipped)
+                        .padding(.top, 4)
                 }
 
                 HStack(alignment: .center, spacing: 6) {
@@ -56,6 +57,8 @@ struct FeedItemRow: View {
 					.padding(.vertical, 8)
 					#endif
 					.opacity(isRead ? 0.7 : 1)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityValue(isRead ? "Read" : isSkipped ? "Skipped" : "Unread")
     }
 }
 
@@ -86,11 +89,17 @@ private struct FeedRowThumbnail: View {
     }
 }
 
-private struct UnreadStatusIndicator: View {
-		let status: Bool
+private struct FeedReadStatusIndicator: View {
+    let isRead: Bool
+    let isSkipped: Bool
+
     var body: some View {
         Circle()
-				.fill(status ? Color.clear : Color.accentColor)
+            .fill(isRead || isSkipped ? Color.clear : Color.accentColor)
+            .overlay {
+                Circle()
+                    .strokeBorder(!isRead && isSkipped ? Color.secondary : Color.clear, lineWidth: 1)
+            }
             .frame(width: 8, height: 8)
             .accessibilityHidden(true)
     }

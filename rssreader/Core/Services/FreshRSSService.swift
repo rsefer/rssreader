@@ -174,6 +174,7 @@ final class FreshRSSService: ObservableObject {
         static let thumbnailDisplayMode = "rssreader_thumbnail_display_mode"
         static let autoRefreshEnabled = "rssreader_auto_refresh_enabled"
         static let autoRefreshIntervalMinutes = "rssreader_auto_refresh_interval_minutes"
+        static let skippedItems = "rssreader_skipped_items"
     }
 
     // MARK: Published state
@@ -184,6 +185,11 @@ final class FreshRSSService: ObservableObject {
     @Published var isAuthenticated = false
     @Published var errorMessage: String?
     @Published private(set) var locallyReadItemIDs: Set<String> = []
+    @Published private var skippedItems = SkippedItems() {
+        didSet {
+            UserDefaults.standard.set(skippedItems.accounts, forKey: StorageKeys.skippedItems)
+        }
+    }
     @Published var sidebarMode: SidebarMode = .new
     @Published var selectedSubscriptionID: String? = nil
     @Published private(set) var lastResolvedHost: String = ""
@@ -264,6 +270,7 @@ final class FreshRSSService: ObservableObject {
 
     init() {
         let defaults = UserDefaults.standard
+        skippedItems = SkippedItems(accounts: defaults.dictionary(forKey: StorageKeys.skippedItems) as? [String: [String]] ?? [:])
         serverURL = Self.syncedString(forKey: StorageKeys.serverURL, defaults: defaults, cloudStore: ubiquitousStore)
         username = Self.syncedString(forKey: StorageKeys.username, defaults: defaults, cloudStore: ubiquitousStore)
         // On macOS, non-interactive keychain reads can fail depending on the
@@ -326,6 +333,25 @@ final class FreshRSSService: ObservableObject {
 
     func isMarkedRead(_ item: FeedItem) -> Bool {
         item.isRead || locallyReadItemIDs.contains(item.id)
+    }
+
+    private var skippedAccount: String {
+        SkippedItems.accountKey(serverURL: normalizedServerURL, username: username)
+    }
+
+    func isSkipped(_ item: FeedItem) -> Bool {
+        !isMarkedRead(item) && skippedItems.contains(item.id, account: skippedAccount)
+    }
+
+    func markSkipped(_ item: FeedItem) {
+        guard !isMarkedRead(item), !isSkipped(item) else { return }
+        skippedItems.insert(item.id, account: skippedAccount)
+    }
+
+    private func clearSkipped(_ ids: [String], account: String) {
+        let skippedIDs = ids.filter { skippedItems.contains($0, account: account) }
+        guard !skippedIDs.isEmpty else { return }
+        skippedItems.remove(skippedIDs, account: account)
     }
 
     var autoRefreshInterval: TimeInterval {
@@ -608,6 +634,7 @@ final class FreshRSSService: ObservableObject {
 
     private func fetchItems(for mode: SidebarMode) async {
         let archiveLimit = 1_000
+        let account = skippedAccount
         techmemeEnrichmentTask?.cancel()
 
         guard let token = await ensureAuthenticationToken() else {
@@ -637,6 +664,7 @@ final class FreshRSSService: ObservableObject {
             }
 
             let deduplicatedItems = deduplicated(items: fetchedItems)
+            clearSkipped(deduplicatedItems.filter(\.isRead).map(\.id), account: account)
             if mode == .archive {
                 items = Array(deduplicatedItems.prefix(archiveLimit))
             } else {
@@ -665,6 +693,7 @@ final class FreshRSSService: ObservableObject {
         let unreadItems = selectedItems.filter { !isMarkedRead($0) }
         guard !unreadItems.isEmpty else { return }
 
+        let account = skippedAccount
         locallyReadItemIDs.formUnion(unreadItems.map(\.id))
 
         guard await ensureAuthenticationToken() != nil else {
@@ -679,10 +708,16 @@ final class FreshRSSService: ObservableObject {
         var failedCount = 0
         for item in unreadItems {
             let succeeded = await sendMarkAsRead(item)
-            if succeeded { continue }
+            if succeeded {
+                clearSkipped([item.id], account: account)
+                continue
+            }
 
             actionToken = await fetchActionToken()
-            if await sendMarkAsRead(item) { continue }
+            if await sendMarkAsRead(item) {
+                clearSkipped([item.id], account: account)
+                continue
+            }
 
             failedCount += 1
             locallyReadItemIDs.remove(item.id)
@@ -753,6 +788,7 @@ final class FreshRSSService: ObservableObject {
             return
         }
 
+        let account = skippedAccount
         locallyReadItemIDs.formUnion(unreadItems.map(\.id))
 
         guard await ensureAuthenticationToken() != nil else {
@@ -767,10 +803,16 @@ final class FreshRSSService: ObservableObject {
         var allSucceeded = true
         for item in unreadItems {
             let succeeded = await sendMarkAsRead(item)
-            if succeeded { continue }
+            if succeeded {
+                clearSkipped([item.id], account: account)
+                continue
+            }
 
             actionToken = await fetchActionToken()
-            if await sendMarkAsRead(item) { continue }
+            if await sendMarkAsRead(item) {
+                clearSkipped([item.id], account: account)
+                continue
+            }
 
             allSucceeded = false
             locallyReadItemIDs.remove(item.id)

@@ -7,6 +7,7 @@ struct FeedView: View {
 	let isSidebarVisible: Bool
     @State private var searchText = ""
     @State private var visibleCount = 50
+    @Namespace private var feedViewport
     private static let pageSize = 50
 
 	init(
@@ -43,6 +44,20 @@ struct FeedView: View {
 
     private var visibleItems: [FeedItem] {
         Array(displayedItems.prefix(visibleCount))
+    }
+
+    private struct SkipTrackingContext: Hashable {
+        let mode: SidebarMode
+        let subscriptionID: String?
+        let searchText: String
+    }
+
+    private var skipTrackingContext: SkipTrackingContext {
+        SkipTrackingContext(
+            mode: service.sidebarMode,
+            subscriptionID: service.selectedSubscriptionID,
+            searchText: searchText
+        )
     }
 
 	private struct AnimatedDisplayState: Equatable {
@@ -125,12 +140,16 @@ struct FeedView: View {
 													FeedItemRow(
 															item: item,
 																											isRead: isRead,
+                                                            isSkipped: service.isSkipped(item),
 															loadImages: service.loadArticleImages,
 															thumbnailSize: CGFloat(service.articleThumbnailSize),
 															thumbnailAspectRatio: service.articleThumbnailAspectRatio,
 															thumbnailDisplayMode: service.thumbnailDisplayMode
 													)
 													.tag(item.id)
+                                                    .background {
+                                                        FeedItemScrollFrame(id: item.id, coordinateSpace: feedViewport)
+                                                    }
 													.contextMenu {
 															FeedItemContextMenu(
 																	item: item,
@@ -156,6 +175,15 @@ struct FeedView: View {
 									.listSectionSeparator(.hidden, edges: .top)
 									#endif
 							}
+                            .modifier(FeedSkipTracking(
+                                coordinateSpace: feedViewport,
+                                itemIDs: visibleItems.map(\.id),
+                                context: skipTrackingContext
+                            ) { skippedIDs in
+                                for item in visibleItems where skippedIDs.contains(item.id) {
+                                    service.markSkipped(item)
+                                }
+                            })
 							#if os(macOS)
 							.padding(.top, 8)
 							#endif

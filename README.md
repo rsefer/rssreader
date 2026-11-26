@@ -34,13 +34,48 @@ swiftc -parse-as-library rssreader/UI/Detail/ArticleSummaryText.swift rssreader/
 The on-device model check is optional; omit `--real-model` to run the other
 checks. Model-dependent checks are skipped when Apple Intelligence is unavailable.
 
+## Make targets
+
+Run `make` or `make help` to list the available commands:
+
+| Command | Action |
+| --- | --- |
+| `make install` | Install macOS first, then iPhone, attempting both even if either fails |
+| `make install-mac` | Archive and install the Release macOS app |
+| `make install-iphone` | Build, install, and launch on the configured iPhone |
+| `make devices` | List devices and their identifiers |
+| `make build-mac` | Build Debug for macOS without signing or installing |
+| `make build-ios` | Build Debug for iOS Simulator without installing |
+| `make check` | Check installer shell syntax and patch whitespace |
+| `make test` | Run all standalone macOS checks |
+| `make test-feed` | Run native feed-scrolling checks |
+| `make test-skipped` | Run skipped-item persistence checks |
+| `make test-summary` | Run article-summary checks without real-model generation |
+
+`make install` exits unsuccessfully if either installation fails.
+
+Test executables are cached in `build/checks` and rebuilt when their sources
+change. Feed checks briefly open a test window. Summary checks skip
+model-dependent cases when Apple Intelligence is unavailable.
+
+## Install on macOS
+
+From the repository root:
+
+```sh
+make install-mac
+```
+
+The script archives the Release app and installs it into `/Applications`.
+Run `./scripts/install_mac.sh --help` for configuration and destination options.
+
 ## Install on an iPhone
 
 From the repository root:
 
 ```sh
 cp .env.iphone.example .env.iphone
-xcrun devicectl list devices
+make devices
 ```
 
 Set `DEVICE_ID=<identifier>` in `.env.iphone` using the phone's Identifier from
@@ -48,7 +83,7 @@ the device list, without quotes. The file is ignored by Git and is read as data,
 not executed as shell code.
 
 ```sh
-./scripts/install_iphone.sh
+make install-iphone
 ```
 
 The script builds, installs, and launches the Debug app. The phone must be paired

@@ -18,3 +18,25 @@ swiftc -parse-as-library rssreader/UI/Detail/ArticleSummaryText.swift rssreader/
 
 The on-device model check is optional; omit `--real-model` to run the other
 checks. Model-dependent checks are skipped when Apple Intelligence is unavailable.
+
+## Install on an iPhone
+
+From the repository root:
+
+```sh
+cp .env.iphone.example .env.iphone
+xcrun devicectl list devices
+```
+
+Set `DEVICE_ID=<identifier>` in `.env.iphone` using the phone's Identifier from
+the device list, without quotes. The file is ignored by Git and is read as data,
+not executed as shell code.
+
+```sh
+./scripts/install_iphone.sh
+```
+
+The script builds, installs, and launches the Debug app. The phone must be paired
+and trusted, unlocked, and have Developer Mode enabled. Xcode must have valid
+signing credentials and provisioning for the device. USB and Xcode-paired
+wireless devices are supported. Build products go into `build/iphone`.

@@ -27,6 +27,17 @@ This document serves as a guide to leveraging agents for working within this rep
 - If unsure: say so. Never guess or invent file paths.
 - User instructions always override this file.
 
+## Development loop
+- Use the simulator as the default destination for app changes, not the real
+  iPhone or `/Applications` installation.
+- The local `.env` selects the development simulator through `SIMULATOR_ID`. After app
+  changes and focused checks, run `make install-simulator` so the user can try
+  the updated app immediately, and confirm the launched process stays running.
+- If `make dev` is already watching this checkout, let its serialized rebuild
+  loop handle deployment rather than starting a competing simulator build.
+- Preserve simulator app data. Do not erase it or copy credentials from real
+  devices. Use `make install-iphone` or `make install-mac` only when requested.
+
 ## Efficiency
 - Read before writing. Understand the problem before coding.
 - No redundant file reads. Read each file once.

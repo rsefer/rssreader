@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CONFIG_PATH="$REPO_ROOT/.env.iphone"
+CONFIG_PATH="$REPO_ROOT/.env"
 DERIVED_DATA="$REPO_ROOT/build/iphone"
 
 if [[ $# -gt 0 ]]; then
@@ -12,26 +12,11 @@ if [[ $# -gt 0 ]]; then
   exit 1
 fi
 
-if [[ ! -f "$CONFIG_PATH" ]]; then
-  echo "Copy .env.iphone.example to .env.iphone and set DEVICE_ID from 'xcrun devicectl list devices'." >&2
-  exit 1
-fi
+source "$SCRIPT_DIR/load_env.sh"
+load_device_env "$CONFIG_PATH"
 
-DEVICE_ID=""
-while IFS= read -r line || [[ -n "$line" ]]; do
-  if [[ "$line" =~ ^[[:space:]]*$ || "$line" =~ ^[[:space:]]*# ]]; then
-    continue
-  fi
-  if [[ "$line" =~ ^DEVICE_ID=([[:xdigit:]-]+)$ && -z "$DEVICE_ID" ]]; then
-    DEVICE_ID="${BASH_REMATCH[1]}"
-  else
-    echo ".env.iphone must contain one unquoted DEVICE_ID=<identifier> assignment and optional comments." >&2
-    exit 1
-  fi
-done < "$CONFIG_PATH"
-
-if [[ -z "$DEVICE_ID" ]]; then
-  echo "Set DEVICE_ID in .env.iphone using 'xcrun devicectl list devices'." >&2
+if [[ ! "$DEVICE_ID" =~ ^[[:xdigit:]-]+$ ]]; then
+  echo "Set DEVICE_ID in .env or on the command line using 'make devices'. Copy .env.example to .env if needed." >&2
   exit 1
 fi
 

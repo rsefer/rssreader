@@ -59,25 +59,6 @@ extension View {
     }
 
     @ViewBuilder
-    func platformFeedStatusToolbar(errorMessage: String?) -> some View {
-        #if os(macOS)
-        self.toolbar {
-            ToolbarItem(placement: .status) {
-                if let error = errorMessage {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .help(error)
-                }
-            }
-        }
-        #else
-        self
-        #endif
-    }
-
-    @ViewBuilder
     func platformFeedListStyle() -> some View {
         #if os(iOS)
 			self.listStyle(.plain)

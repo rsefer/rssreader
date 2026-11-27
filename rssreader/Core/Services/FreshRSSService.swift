@@ -175,6 +175,10 @@ final class FreshRSSService: ObservableObject {
         static let autoRefreshEnabled = "rssreader_auto_refresh_enabled"
         static let autoRefreshIntervalMinutes = "rssreader_auto_refresh_interval_minutes"
         static let skippedItems = "rssreader_skipped_items"
+        static let lastSyncDate = "rssreader_last_sync_date"
+        static let lastSyncAccount = "rssreader_last_sync_account"
+        static let pendingReadChanges = "rssreader_pending_read_changes"
+        static let pendingReadChangesAccount = "rssreader_pending_read_changes_account"
     }
 
     // MARK: Published state
@@ -182,9 +186,17 @@ final class FreshRSSService: ObservableObject {
     @Published var items: [FeedItem] = []
     @Published var subscriptions: [FeedSubscription] = []
     @Published var isLoading = false
+    @Published private(set) var isUpdatingReadStatus = false
     @Published var isAuthenticated = false
     @Published var errorMessage: String?
+    @Published private(set) var syncErrorMessage: String?
     @Published private(set) var locallyReadItemIDs: Set<String> = []
+    @Published private(set) var pendingReadChanges: [String: Bool] = [:] {
+        didSet {
+            UserDefaults.standard.set(pendingReadChanges, forKey: StorageKeys.pendingReadChanges)
+            UserDefaults.standard.set(accountStorageIdentifier, forKey: StorageKeys.pendingReadChangesAccount)
+        }
+    }
     @Published private var skippedItems = SkippedItems() {
         didSet {
             UserDefaults.standard.set(skippedItems.accounts, forKey: StorageKeys.skippedItems)
@@ -194,17 +206,41 @@ final class FreshRSSService: ObservableObject {
     @Published var selectedSubscriptionID: String? = nil
     @Published private(set) var lastResolvedHost: String = ""
     @Published private(set) var lastURLErrorCode: Int?
-    @Published private(set) var lastSyncDate: Date?
+    @Published private(set) var lastSyncDate: Date? {
+        didSet {
+            if let lastSyncDate {
+                UserDefaults.standard.set(lastSyncDate, forKey: StorageKeys.lastSyncDate)
+                UserDefaults.standard.set(accountStorageIdentifier, forKey: StorageKeys.lastSyncAccount)
+            } else {
+                UserDefaults.standard.removeObject(forKey: StorageKeys.lastSyncDate)
+                UserDefaults.standard.removeObject(forKey: StorageKeys.lastSyncAccount)
+            }
+        }
+    }
 
     // MARK: Persisted settings
 
     @Published var serverURL: String {
         didSet {
+            if oldValue != serverURL {
+                lastSyncDate = nil
+                pendingReadChanges = [:]
+                locallyReadItemIDs.removeAll()
+                errorMessage = nil
+                syncErrorMessage = nil
+            }
             persistSetting(serverURL, forKey: StorageKeys.serverURL)
         }
     }
     @Published var username: String {
         didSet {
+            if oldValue != username {
+                lastSyncDate = nil
+                pendingReadChanges = [:]
+                locallyReadItemIDs.removeAll()
+                errorMessage = nil
+                syncErrorMessage = nil
+            }
             persistSetting(username, forKey: StorageKeys.username)
         }
     }
@@ -265,6 +301,9 @@ final class FreshRSSService: ObservableObject {
     private let cloudKitSync = CloudKitSyncService()
     private var techmemeMetadataCache: [String: TechmemeMetadata] = [:]
     private var techmemeEnrichmentTask: Task<Void, Never>?
+    private var accountStorageIdentifier: String {
+        SkippedItems.accountKey(serverURL: serverURL, username: username)
+    }
 
     // MARK: Init
 
@@ -288,6 +327,13 @@ final class FreshRSSService: ObservableObject {
         autoRefreshEnabled = defaults.object(forKey: StorageKeys.autoRefreshEnabled) as? Bool ?? true
         let storedInterval = defaults.integer(forKey: StorageKeys.autoRefreshIntervalMinutes)
         autoRefreshIntervalMinutes = Self.clampAutoRefreshInterval(storedInterval == 0 ? 15 : storedInterval)
+        let accountIdentifier = SkippedItems.accountKey(serverURL: serverURL, username: username)
+        if defaults.string(forKey: StorageKeys.lastSyncAccount) == accountIdentifier {
+            lastSyncDate = defaults.object(forKey: StorageKeys.lastSyncDate) as? Date
+        }
+        if defaults.string(forKey: StorageKeys.pendingReadChangesAccount) == accountIdentifier {
+            pendingReadChanges = defaults.dictionary(forKey: StorageKeys.pendingReadChanges) as? [String: Bool] ?? [:]
+        }
         hasStoredPassword = !password.isEmpty
 
         // Merge any pending read IDs that were synced from another device via CloudKit.
@@ -332,7 +378,10 @@ final class FreshRSSService: ObservableObject {
     }
 
     func isMarkedRead(_ item: FeedItem) -> Bool {
-        item.isRead || locallyReadItemIDs.contains(item.id)
+        if let pendingReadStatus = pendingReadChanges[item.id] {
+            return pendingReadStatus
+        }
+        return item.isRead || locallyReadItemIDs.contains(item.id)
     }
 
     private var skippedAccount: String {
@@ -638,11 +687,13 @@ final class FreshRSSService: ObservableObject {
         techmemeEnrichmentTask?.cancel()
 
         guard let token = await ensureAuthenticationToken() else {
+            syncErrorMessage = errorMessage ?? "Could not connect to FreshRSS."
             return
         }
 
         isLoading = true
         errorMessage = nil
+        syncErrorMessage = nil
 
         do {
             var fetchedItems: [FeedItem] = []
@@ -677,7 +728,9 @@ final class FreshRSSService: ObservableObject {
             Task { await cloudKitSync.clearSyncedReadIDs() }
 
         } catch {
-            errorMessage = "Failed to load items: \(error.localizedDescription)"
+            let message = "Failed to load items: \(error.localizedDescription)"
+            errorMessage = message
+            syncErrorMessage = message
         }
 
         isLoading = false
@@ -690,47 +743,40 @@ final class FreshRSSService: ObservableObject {
     }
 
     func markAsRead(_ selectedItems: [FeedItem]) async {
+        guard !isUpdatingReadStatus else { return }
         let unreadItems = selectedItems.filter { !isMarkedRead($0) }
         guard !unreadItems.isEmpty else { return }
+        isUpdatingReadStatus = true
+        defer { isUpdatingReadStatus = false }
 
+        let itemIDs = unreadItems.map(\.id)
         let account = skippedAccount
-        locallyReadItemIDs.formUnion(unreadItems.map(\.id))
+        pendingReadChanges = pendingReadChanges.merging(
+            Dictionary(uniqueKeysWithValues: itemIDs.map { ($0, true) }),
+            uniquingKeysWith: { _, new in new }
+        )
+        locallyReadItemIDs.formUnion(itemIDs)
 
         guard await ensureAuthenticationToken() != nil else {
-            locallyReadItemIDs.subtract(unreadItems.map(\.id))
+            errorMessage = "Read updates are waiting for a FreshRSS connection."
             return
         }
 
-        if actionToken == nil {
-            actionToken = await fetchActionToken()
+        let succeededIDs = await performReadActions(itemIDs, isRead: true)
+        for itemID in succeededIDs {
+            pendingReadChanges.removeValue(forKey: itemID)
+            clearSkipped([itemID], account: account)
         }
 
-        var failedCount = 0
-        for item in unreadItems {
-            let succeeded = await sendMarkAsRead(item)
-            if succeeded {
-                clearSkipped([item.id], account: account)
-                continue
-            }
+        let failedIDs = Set(itemIDs).subtracting(succeededIDs)
+        locallyReadItemIDs.subtract(failedIDs)
 
-            actionToken = await fetchActionToken()
-            if await sendMarkAsRead(item) {
-                clearSkipped([item.id], account: account)
-                continue
-            }
-
-            failedCount += 1
-            locallyReadItemIDs.remove(item.id)
-        }
-
-        if failedCount > 0 {
-            errorMessage = unreadItems.count == 1
-                ? "Failed to mark \(unreadItems[0].title) as read."
-                : "Some selected items could not be marked as read."
+        if !failedIDs.isEmpty {
+            errorMessage = "\(failedIDs.count) read update(s) are waiting to sync. Retry from the sync status."
         }
 
         // Push successfully read IDs to CloudKit so other devices see them immediately.
-        let syncedIDs = locallyReadItemIDs.intersection(Set(unreadItems.map(\.id)))
+        let syncedIDs = locallyReadItemIDs.intersection(succeededIDs)
         if !syncedIDs.isEmpty {
             Task { await cloudKitSync.pushReadIDs(syncedIDs) }
         }
@@ -741,128 +787,207 @@ final class FreshRSSService: ObservableObject {
     }
 
     func markAsUnread(_ selectedItems: [FeedItem]) async {
+        guard !isUpdatingReadStatus else { return }
         let readItems = selectedItems.filter { isMarkedRead($0) }
         guard !readItems.isEmpty else { return }
+        isUpdatingReadStatus = true
+        defer { isUpdatingReadStatus = false }
 
-        let initiallyLocallyRead = Set(readItems.filter { locallyReadItemIDs.contains($0.id) }.map(\.id))
-        locallyReadItemIDs.subtract(readItems.map(\.id))
+        let itemIDs = readItems.map(\.id)
+        pendingReadChanges = pendingReadChanges.merging(
+            Dictionary(uniqueKeysWithValues: itemIDs.map { ($0, false) }),
+            uniquingKeysWith: { _, new in new }
+        )
+        locallyReadItemIDs.subtract(itemIDs)
 
         guard await ensureAuthenticationToken() != nil else {
-            locallyReadItemIDs.formUnion(initiallyLocallyRead)
+            errorMessage = "Unread updates are waiting for a FreshRSS connection."
             return
         }
 
-        if actionToken == nil {
-            actionToken = await fetchActionToken()
+        let succeededIDs = await performReadActions(itemIDs, isRead: false)
+        for itemID in succeededIDs {
+            pendingReadChanges.removeValue(forKey: itemID)
         }
 
-        var failedCount = 0
-        for item in readItems {
-            let succeeded = await sendMarkAsUnread(item)
-            if succeeded { continue }
-
-            actionToken = await fetchActionToken()
-            if await sendMarkAsUnread(item) { continue }
-
-            failedCount += 1
-            if initiallyLocallyRead.contains(item.id) {
-                locallyReadItemIDs.insert(item.id)
-            }
-        }
-
-        if readItems.contains(where: { $0.isRead }) {
+        if !succeededIDs.isEmpty && readItems.contains(where: { $0.isRead }) {
             await syncCurrentMode()
         }
 
+        let failedCount = itemIDs.count - succeededIDs.count
         if failedCount > 0 {
-            errorMessage = readItems.count == 1
-                ? "Failed to mark \(readItems[0].title) as unread."
-                : "Some selected items could not be marked as unread."
+            errorMessage = "\(failedCount) unread update(s) are waiting to sync. Retry from the sync status."
         }
     }
 
     func markAllAsRead() async {
+        guard !isUpdatingReadStatus else { return }
         let unreadItems = items.filter { !isMarkedRead($0) }
         guard !unreadItems.isEmpty else {
             await syncCurrentMode()
             return
         }
+        isUpdatingReadStatus = true
+        defer { isUpdatingReadStatus = false }
 
+        let itemIDs = unreadItems.map(\.id)
         let account = skippedAccount
-        locallyReadItemIDs.formUnion(unreadItems.map(\.id))
+        pendingReadChanges = pendingReadChanges.merging(
+            Dictionary(uniqueKeysWithValues: itemIDs.map { ($0, true) }),
+            uniquingKeysWith: { _, new in new }
+        )
+        locallyReadItemIDs.formUnion(itemIDs)
 
         guard await ensureAuthenticationToken() != nil else {
-                locallyReadItemIDs.subtract(unreadItems.map(\.id))
+                errorMessage = "Read updates are waiting for a FreshRSS connection."
                 return
         }
 
-        if actionToken == nil {
-            actionToken = await fetchActionToken()
+        let succeededIDs = await performReadActions(itemIDs, isRead: true)
+        for itemID in succeededIDs {
+            pendingReadChanges.removeValue(forKey: itemID)
+            clearSkipped([itemID], account: account)
         }
 
-        var allSucceeded = true
-        for item in unreadItems {
-            let succeeded = await sendMarkAsRead(item)
-            if succeeded {
-                clearSkipped([item.id], account: account)
-                continue
-            }
+        locallyReadItemIDs.subtract(Set(itemIDs).subtracting(succeededIDs))
 
-            actionToken = await fetchActionToken()
-            if await sendMarkAsRead(item) {
-                clearSkipped([item.id], account: account)
-                continue
-            }
-
-            allSucceeded = false
-            locallyReadItemIDs.remove(item.id)
+        let syncedIDs = locallyReadItemIDs.intersection(succeededIDs)
+        if !syncedIDs.isEmpty {
+            await cloudKitSync.pushReadIDs(syncedIDs)
         }
 
         await syncCurrentMode()
 
-        if !allSucceeded {
-            errorMessage = "Some items could not be marked as read."
+        if succeededIDs.count < itemIDs.count {
+            errorMessage = "\(itemIDs.count - succeededIDs.count) read update(s) are waiting to sync. Retry from the sync status."
         }
     }
 
     func markAllAsUnread() async {
+        guard !isUpdatingReadStatus else { return }
         let readItems = items.filter { isMarkedRead($0) }
         guard !readItems.isEmpty else {
             await syncCurrentMode()
             return
         }
+        isUpdatingReadStatus = true
+        defer { isUpdatingReadStatus = false }
 
-        locallyReadItemIDs.subtract(readItems.map(\.id))
+        let itemIDs = readItems.map(\.id)
+        pendingReadChanges = pendingReadChanges.merging(
+            Dictionary(uniqueKeysWithValues: itemIDs.map { ($0, false) }),
+            uniquingKeysWith: { _, new in new }
+        )
+        locallyReadItemIDs.subtract(itemIDs)
 
         guard await ensureAuthenticationToken() != nil else {
+            errorMessage = "Unread updates are waiting for a FreshRSS connection."
             return
         }
 
-        if actionToken == nil {
-            actionToken = await fetchActionToken()
-        }
-
-        var allSucceeded = true
-        for item in readItems {
-            let succeeded = await sendMarkAsUnread(item)
-            if succeeded { continue }
-
-            actionToken = await fetchActionToken()
-            if await sendMarkAsUnread(item) { continue }
-
-            allSucceeded = false
-            locallyReadItemIDs.insert(item.id)
+        let succeededIDs = await performReadActions(itemIDs, isRead: false)
+        for itemID in succeededIDs {
+            pendingReadChanges.removeValue(forKey: itemID)
         }
 
         await syncCurrentMode()
 
-        if !allSucceeded {
-            errorMessage = "Some items could not be marked as unread."
+        if succeededIDs.count < itemIDs.count {
+            errorMessage = "\(itemIDs.count - succeededIDs.count) unread update(s) are waiting to sync. Retry from the sync status."
+        }
+    }
+
+    func retryPendingReadChanges() async {
+        guard !isUpdatingReadStatus else { return }
+        guard !pendingReadChanges.isEmpty else { return }
+        isUpdatingReadStatus = true
+        defer { isUpdatingReadStatus = false }
+        guard await ensureAuthenticationToken() != nil else {
+            errorMessage = "Read updates are waiting for a FreshRSS connection."
+            return
+        }
+
+        var didSucceed = false
+        for isRead in [true, false] {
+            let itemIDs = pendingReadChanges.filter { $0.value == isRead }.map(\.key)
+            guard !itemIDs.isEmpty else { continue }
+
+            let succeededIDs = await performReadActions(itemIDs, isRead: isRead)
+            didSucceed = didSucceed || !succeededIDs.isEmpty
+            for itemID in succeededIDs {
+                pendingReadChanges.removeValue(forKey: itemID)
+                if isRead {
+                    locallyReadItemIDs.insert(itemID)
+                    clearSkipped([itemID], account: skippedAccount)
+                } else {
+                    locallyReadItemIDs.remove(itemID)
+                }
+            }
+
+            if isRead && !succeededIDs.isEmpty {
+                await cloudKitSync.pushReadIDs(succeededIDs)
+            }
+        }
+
+        if didSucceed {
+            await syncCurrentMode()
+        }
+        if !pendingReadChanges.isEmpty {
+            errorMessage = "\(pendingReadChanges.count) read update(s) are still waiting to sync."
+        }
+    }
+
+    private func performReadActions(_ itemIDs: [String], isRead: Bool) async -> Set<String> {
+        guard !itemIDs.isEmpty else { return [] }
+        if actionToken == nil {
+            actionToken = await fetchActionToken()
+        }
+
+        let initiallySucceeded = await sendReadActions(itemIDs, isRead: isRead)
+        let failedIDs = itemIDs.filter { !initiallySucceeded.contains($0) }
+        guard !failedIDs.isEmpty else { return initiallySucceeded }
+
+        try? await Task.sleep(for: .milliseconds(500))
+        actionToken = await fetchActionToken()
+        let retriedSucceeded = await sendReadActions(failedIDs, isRead: isRead)
+        return initiallySucceeded.union(retriedSucceeded)
+    }
+
+    private func sendReadActions(_ itemIDs: [String], isRead: Bool) async -> Set<String> {
+        var iterator = itemIDs.makeIterator()
+        let initialCount = min(4, itemIDs.count)
+
+        return await withTaskGroup(of: (String, Bool).self) { group in
+            for _ in 0..<initialCount {
+                guard let itemID = iterator.next() else { break }
+                group.addTask {
+                    let succeeded = isRead
+                        ? await self.sendMarkAsRead(itemID: itemID)
+                        : await self.sendMarkAsUnread(itemID: itemID)
+                    return (itemID, succeeded)
+                }
+            }
+
+            var succeededIDs = Set<String>()
+            while let (itemID, succeeded) = await group.next() {
+                if succeeded {
+                    succeededIDs.insert(itemID)
+                }
+                if let nextItemID = iterator.next() {
+                    group.addTask {
+                        let nextSucceeded = isRead
+                            ? await self.sendMarkAsRead(itemID: nextItemID)
+                            : await self.sendMarkAsUnread(itemID: nextItemID)
+                        return (nextItemID, nextSucceeded)
+                    }
+                }
+            }
+            return succeededIDs
         }
     }
 
     @discardableResult
-    private func sendMarkAsRead(_ item: FeedItem) async -> Bool {
+    private func sendMarkAsRead(itemID: String) async -> Bool {
         guard let authToken = authToken, let actionToken = actionToken else { return false }
 
         guard let editURL = gReaderURL(pathComponents: ["reader", "api", "0", "edit-tag"]) else { return false }
@@ -874,7 +999,7 @@ final class FreshRSSService: ObservableObject {
 
         var components = URLComponents()
         components.queryItems = [
-            URLQueryItem(name: "i", value: item.id),
+            URLQueryItem(name: "i", value: itemID),
             URLQueryItem(name: "a", value: "user/-/state/com.google/read"),
             URLQueryItem(name: "T", value: actionToken)
         ]
@@ -894,7 +1019,7 @@ final class FreshRSSService: ObservableObject {
     }
 
     @discardableResult
-    private func sendMarkAsUnread(_ item: FeedItem) async -> Bool {
+    private func sendMarkAsUnread(itemID: String) async -> Bool {
         guard let authToken = authToken, let actionToken = actionToken else { return false }
 
         guard let editURL = gReaderURL(pathComponents: ["reader", "api", "0", "edit-tag"]) else { return false }
@@ -906,7 +1031,7 @@ final class FreshRSSService: ObservableObject {
 
         var components = URLComponents()
         components.queryItems = [
-            URLQueryItem(name: "i", value: item.id),
+            URLQueryItem(name: "i", value: itemID),
             URLQueryItem(name: "r", value: "user/-/state/com.google/read"),
             URLQueryItem(name: "T", value: actionToken)
         ]

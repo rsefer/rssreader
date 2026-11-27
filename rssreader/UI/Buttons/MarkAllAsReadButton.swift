@@ -10,6 +10,6 @@ struct MarkAllAsReadButton: View {
 				Label("Mark All as Read", systemImage: "checkmark.rectangle.stack")
 		}
 		.help("Mark All as Read")
-		.disabled(service.unreadCount == 0 || service.isLoading)
+		.disabled(service.unreadCount == 0 || service.isLoading || service.isUpdatingReadStatus)
 	}
 }

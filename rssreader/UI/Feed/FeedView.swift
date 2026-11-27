@@ -85,7 +85,6 @@ struct FeedView: View {
             }
             .onChange(of: searchText) { _, _ in visibleCount = Self.pageSize }
             .onChange(of: service.selectedSubscriptionID) { _, _ in visibleCount = Self.pageSize }
-            .platformFeedStatusToolbar(errorMessage: service.errorMessage)
     }
 
     @ViewBuilder

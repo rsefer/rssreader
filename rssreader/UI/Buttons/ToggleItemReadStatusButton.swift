@@ -16,7 +16,7 @@ struct ToggleItemReadStatusButton: View {
 			}
 		}
 		.help(service.isMarkedRead(item) ? "Mark as Unread" : "Mark as Read")
-		.disabled(service.isLoading)
+		.disabled(service.isLoading || service.isUpdatingReadStatus)
 		
 	}
 }

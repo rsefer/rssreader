@@ -5,7 +5,7 @@ import Testing
 /// Builds a service wired to a fake server, an isolated defaults suite, and in-memory secrets.
 @MainActor
 private struct Fixture {
-    static let items = """
+    nonisolated static let items = """
     {"items":[
       {"id":"item-1","title":"First","published":1700000300,"canonical":[{"href":"https://news.example/1"}],"origin":{"title":"Example"}},
       {"id":"item-2","title":"Second","published":1700000200,"canonical":[{"href":"https://news.example/2"}],"origin":{"title":"Example"}}
@@ -200,10 +200,11 @@ struct FreshRSSServiceTests {
         #expect(fixture.service.shouldAutoSync(), "Never synced yet")
 
         await fixture.service.authenticate()
-        let syncedAt = try? #require(fixture.service.lastSyncDate)
+        let syncedAt = fixture.service.lastSyncDate ?? .now
 
+        #expect(fixture.service.lastSyncDate != nil)
         #expect(fixture.service.shouldAutoSync(now: Date()) == false)
-        #expect(fixture.service.shouldAutoSync(now: (syncedAt ?? .now).addingTimeInterval(16 * 60)))
+        #expect(fixture.service.shouldAutoSync(now: syncedAt.addingTimeInterval(16 * 60)))
     }
 
     // MARK: Keychain

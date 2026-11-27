@@ -122,7 +122,8 @@ final class FreshRSSService: ObservableObject {
     private var actionToken: String?
     private var hasStoredPassword = false
     private var isLoadingStoredPassword = false
-    private var ubiquitousStoreObserver: NSObjectProtocol?
+    // Only written during init and read in deinit, so unsynchronized access is safe.
+    nonisolated(unsafe) private var ubiquitousStoreObserver: NSObjectProtocol?
     private var isApplyingCloudSync = false
     private var techmemeMetadataCache: [String: TechmemeMetadata] = [:]
     private var techmemeEnrichmentTask: Task<Void, Never>?

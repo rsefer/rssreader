@@ -176,6 +176,8 @@ final class FreshRSSService: ObservableObject {
         static let autoRefreshEnabled = "rssreader_auto_refresh_enabled"
         static let autoRefreshIntervalMinutes = "rssreader_auto_refresh_interval_minutes"
         static let skippedItems = "rssreader_skipped_items"
+        static let pendingSkippedItemChanges = "rssreader_pending_skipped_item_changes"
+        static let cloudSyncedSkippedAccounts = "rssreader_cloud_synced_skipped_accounts"
         static let lastSyncDate = "rssreader_last_sync_date"
         static let lastSyncAccount = "rssreader_last_sync_account"
         static let pendingReadChanges = "rssreader_pending_read_changes"
@@ -203,6 +205,17 @@ final class FreshRSSService: ObservableObject {
             UserDefaults.standard.set(skippedItems.accounts, forKey: StorageKeys.skippedItems)
         }
     }
+    private var pendingSkippedItemChanges: [String: [String: Bool]] = [:] {
+        didSet {
+            UserDefaults.standard.set(pendingSkippedItemChanges, forKey: StorageKeys.pendingSkippedItemChanges)
+        }
+    }
+    private var cloudSyncedSkippedAccounts: Set<String> = [] {
+        didSet {
+            UserDefaults.standard.set(Array(cloudSyncedSkippedAccounts), forKey: StorageKeys.cloudSyncedSkippedAccounts)
+        }
+    }
+    private var skippedItemsSyncTask: Task<Void, Never>?
     @Published var sidebarMode: SidebarMode = .new
     @Published var selectedSubscriptionID: String? = nil
     @Published private(set) var lastResolvedHost: String = ""
@@ -311,6 +324,8 @@ final class FreshRSSService: ObservableObject {
     init() {
         let defaults = UserDefaults.standard
         skippedItems = SkippedItems(accounts: defaults.dictionary(forKey: StorageKeys.skippedItems) as? [String: [String]] ?? [:])
+        pendingSkippedItemChanges = defaults.dictionary(forKey: StorageKeys.pendingSkippedItemChanges) as? [String: [String: Bool]] ?? [:]
+        cloudSyncedSkippedAccounts = Set(defaults.stringArray(forKey: StorageKeys.cloudSyncedSkippedAccounts) ?? [])
         serverURL = Self.syncedString(forKey: StorageKeys.serverURL, defaults: defaults, cloudStore: ubiquitousStore)
         username = Self.syncedString(forKey: StorageKeys.username, defaults: defaults, cloudStore: ubiquitousStore)
         // On macOS, non-interactive keychain reads can fail depending on the
@@ -343,6 +358,7 @@ final class FreshRSSService: ObservableObject {
             if !syncedReadIDs.isEmpty {
                 locallyReadItemIDs.formUnion(syncedReadIDs)
             }
+            await synchronizeSkippedItems(for: skippedAccount)
         }
 
         ubiquitousStoreObserver = NotificationCenter.default.addObserver(
@@ -395,13 +411,62 @@ final class FreshRSSService: ObservableObject {
 
     func markSkipped(_ item: FeedItem) {
         guard !isMarkedRead(item), !isSkipped(item) else { return }
-        skippedItems.insert(item.id, account: skippedAccount)
+        let account = skippedAccount
+        skippedItems.insert(item.id, account: account)
+        queueSkippedItemChanges([item.id], isSkipped: true, account: account)
     }
 
     private func clearSkipped(_ ids: [String], account: String) {
         let skippedIDs = ids.filter { skippedItems.contains($0, account: account) }
         guard !skippedIDs.isEmpty else { return }
         skippedItems.remove(skippedIDs, account: account)
+        queueSkippedItemChanges(skippedIDs, isSkipped: false, account: account)
+    }
+
+    private func queueSkippedItemChanges(_ ids: [String], isSkipped: Bool, account: String) {
+        var changes = pendingSkippedItemChanges[account] ?? [:]
+        for id in ids {
+            changes[id] = isSkipped
+        }
+        pendingSkippedItemChanges[account] = changes
+        scheduleSkippedItemsSync(for: account)
+    }
+
+    private func scheduleSkippedItemsSync(for account: String) {
+        guard skippedItemsSyncTask == nil else { return }
+        skippedItemsSyncTask = Task { @MainActor [weak self] in
+            await self?.synchronizeSkippedItems(for: account)
+        }
+    }
+
+    private func synchronizeSkippedItems(for account: String) async {
+        defer { skippedItemsSyncTask = nil }
+
+        while true {
+            let changes = pendingSkippedItemChanges[account] ?? [:]
+            let isInitialSync = !cloudSyncedSkippedAccounts.contains(account)
+            guard let syncedIDs = await cloudKitSync.synchronizeSkippedItems(
+                account: account,
+                localIDs: Set(skippedItems.accounts[account] ?? []),
+                changes: changes,
+                isInitialSync: isInitialSync
+            ) else {
+                return
+            }
+
+            cloudSyncedSkippedAccounts.insert(account)
+            skippedItems.replace(syncedIDs, account: account)
+
+            var remainingChanges = pendingSkippedItemChanges[account] ?? [:]
+            for (id, value) in changes where remainingChanges[id] == value {
+                remainingChanges.removeValue(forKey: id)
+            }
+            if remainingChanges.isEmpty {
+                pendingSkippedItemChanges.removeValue(forKey: account)
+                return
+            }
+            pendingSkippedItemChanges[account] = remainingChanges
+        }
     }
 
     var autoRefreshInterval: TimeInterval {
@@ -663,6 +728,7 @@ final class FreshRSSService: ObservableObject {
     // MARK: - Fetch items
 
     func syncCurrentMode() async {
+        scheduleSkippedItemsSync(for: skippedAccount)
         await fetchItems(for: sidebarMode)
     }
 

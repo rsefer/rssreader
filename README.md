@@ -5,7 +5,9 @@ rssreader is a SwiftUI app for iPhone, iPad, and macOS that connects to FreshRSS
 Unread articles scrolled past the top of the feed are marked with a grey ring
 instead of the unread dot. They remain
 unread until opened or explicitly marked read, including with Mark All as Read.
-Skipped labels are stored locally per FreshRSS account and are not synced between devices.
+Skipped labels are stored per FreshRSS account and sync between devices through the
+app's private CloudKit database when iCloud is available. Local labels remain available
+when CloudKit is unavailable and are reconciled on the next successful sync.
 
 To run the native macOS feed-scrolling regression checks:
 

@@ -34,6 +34,28 @@ struct SkippedItemsChecks {
         skipped.remove(["second"], account: account)
         precondition(skipped.accounts[account] == nil)
         precondition(skipped.contains("first", account: otherAccount))
+
+        skipped.replace(["replacement"], account: account)
+        precondition(skipped.accounts[account] == ["replacement"])
+        skipped.replace([], account: account)
+        precondition(skipped.accounts[account] == nil)
+        precondition(skipped.contains("first", account: otherAccount))
+
+        let migratedIDs = SkippedItems.synchronizedIDs(
+            remoteIDs: ["remote", "removed"],
+            localIDs: ["local", "removed"],
+            pendingChanges: ["removed": false, "new": true],
+            isInitialSync: true
+        )
+        precondition(migratedIDs == ["remote", "local", "new"])
+
+        let subsequentIDs = SkippedItems.synchronizedIDs(
+            remoteIDs: ["remote", "stale"],
+            localIDs: ["stale-local"],
+            pendingChanges: ["stale": false],
+            isInitialSync: false
+        )
+        precondition(subsequentIDs == ["remote"])
         print("Skipped item checks passed")
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import CloudKit
+import CryptoKit
 
 /// Syncs the set of locally-applied read item IDs through the app's private CloudKit database.
 ///
@@ -23,6 +24,8 @@ final class CloudKitSyncService {
     private static let recordType     = "ReadState"
     private static let readIDsField   = "pendingReadIDs"
     private static let recordName     = "mainReadState"
+    private static let skippedRecordType = "SkippedItems"
+    private static let skippedIDsField = "itemIDs"
 
     private let privateDB: CKDatabase
     private let zoneID: CKRecordZone.ID
@@ -88,6 +91,50 @@ final class CloudKitSyncService {
         } catch {}
     }
 
+    /// Merges local skipped IDs on first sync, then applies queued item-level changes.
+    /// Returns nil when CloudKit is unavailable so local state and pending changes remain intact.
+    func synchronizeSkippedItems(
+        account: String,
+        localIDs: Set<String>,
+        changes: [String: Bool],
+        isInitialSync: Bool
+    ) async -> Set<String>? {
+        do {
+            try await ensureZoneReady()
+
+            let recordID = CKRecord.ID(
+                recordName: Self.skippedRecordName(for: account),
+                zoneID: zoneID
+            )
+
+            for attempt in 0..<3 {
+                let record = try await fetchSkippedRecord(with: recordID)
+                let remoteIDs = Set(record[Self.skippedIDsField] as? [String] ?? [])
+                let ids = SkippedItems.synchronizedIDs(
+                    remoteIDs: remoteIDs,
+                    localIDs: localIDs,
+                    pendingChanges: changes,
+                    isInitialSync: isInitialSync
+                )
+
+                let changed = record[Self.skippedIDsField] == nil
+                    || remoteIDs != ids
+                guard changed else { return ids }
+
+                record[Self.skippedIDsField] = ids.sorted()
+                do {
+                    _ = try await privateDB.save(record)
+                    return ids
+                } catch let error as CKError where error.code == .serverRecordChanged && attempt < 2 {
+                    continue
+                }
+            }
+            return nil
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: - Helpers
 
     private func ensureZoneReady() async throws {
@@ -104,5 +151,19 @@ final class CloudKitSyncService {
         } catch let error as CKError where error.code == .unknownItem {
             return CKRecord(recordType: Self.recordType, recordID: recordID)
         }
+    }
+
+    private func fetchSkippedRecord(with recordID: CKRecord.ID) async throws -> CKRecord {
+        do {
+            return try await privateDB.record(for: recordID)
+        } catch let error as CKError where error.code == .unknownItem {
+            return CKRecord(recordType: Self.skippedRecordType, recordID: recordID)
+        }
+    }
+
+    private static func skippedRecordName(for account: String) -> String {
+        let digest = SHA256.hash(data: Data(account.utf8))
+        let suffix = digest.map { String(format: "%02x", $0) }.joined()
+        return "SkippedItems-\(suffix)"
     }
 }

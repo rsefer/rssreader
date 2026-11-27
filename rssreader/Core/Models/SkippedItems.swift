@@ -17,12 +17,40 @@ struct SkippedItems {
         return "\(server):\(user)"
     }
 
+    static func synchronizedIDs(
+        remoteIDs: Set<String>,
+        localIDs: Set<String>,
+        pendingChanges: [String: Bool],
+        isInitialSync: Bool
+    ) -> Set<String> {
+        var ids = remoteIDs
+        if isInitialSync {
+            ids.formUnion(localIDs)
+        }
+        for (id, isSkipped) in pendingChanges {
+            if isSkipped {
+                ids.insert(id)
+            } else {
+                ids.remove(id)
+            }
+        }
+        return ids
+    }
+
     func contains(_ id: String, account: String) -> Bool {
         idsByAccount[account]?.contains(id) == true
     }
 
     mutating func insert(_ id: String, account: String) {
         idsByAccount[account, default: []].insert(id)
+    }
+
+    mutating func replace(_ ids: Set<String>, account: String) {
+        if ids.isEmpty {
+            idsByAccount.removeValue(forKey: account)
+        } else {
+            idsByAccount[account] = ids
+        }
     }
 
     mutating func remove(_ ids: some Sequence<String>, account: String) {

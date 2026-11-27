@@ -5,7 +5,7 @@ SUMMARY_SOURCES := rssreader/UI/Detail/ArticleSummaryText.swift \
 	rssreader/Core/EmbeddedWebNavigationPolicy.swift \
 	tests/ArticleSummaryChecks.swift
 
-.PHONY: help install install-mac install-iphone devices build-mac build-ios check test test-feed test-skipped test-summary
+.PHONY: help install install-mac install-iphone devices build-mac build-ios check test test-feed test-skipped test-summary test-karakeep
 
 help:
 	@printf '%s\n' \
@@ -19,7 +19,8 @@ help:
 		'make test           Run all standalone macOS checks' \
 		'make test-feed      Run native feed-scrolling checks' \
 		'make test-skipped   Run skipped-item persistence checks' \
-		'make test-summary   Run article-summary checks without real-model generation'
+		'make test-summary   Run article-summary checks without real-model generation' \
+		'make test-karakeep  Run Karakeep request and response checks'
 
 install:
 	@status=0; \
@@ -51,7 +52,7 @@ check:
 	bash -n scripts/install_iphone.sh
 	git diff --check
 
-test: test-feed test-skipped test-summary
+test: test-feed test-skipped test-summary test-karakeep
 
 test-feed: $(CHECKS_DIR)/feed-scroll-checks
 	./$(CHECKS_DIR)/feed-scroll-checks
@@ -61,6 +62,9 @@ test-skipped: $(CHECKS_DIR)/skipped-items-checks
 
 test-summary: $(CHECKS_DIR)/article-summary-checks
 	./$(CHECKS_DIR)/article-summary-checks
+
+test-karakeep: $(CHECKS_DIR)/karakeep-checks
+	./$(CHECKS_DIR)/karakeep-checks
 
 $(CHECKS_DIR):
 	mkdir -p "$@"
@@ -72,4 +76,7 @@ $(CHECKS_DIR)/skipped-items-checks: rssreader/Core/Models/SkippedItems.swift tes
 	swiftc -parse-as-library $^ -o "$@"
 
 $(CHECKS_DIR)/article-summary-checks: $(SUMMARY_SOURCES) | $(CHECKS_DIR)
+	swiftc -parse-as-library $^ -o "$@"
+
+$(CHECKS_DIR)/karakeep-checks: rssreader/Core/Services/KarakeepClient.swift tests/KarakeepChecks.swift | $(CHECKS_DIR)
 	swiftc -parse-as-library $^ -o "$@"

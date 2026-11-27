@@ -34,6 +34,21 @@ swiftc -parse-as-library rssreader/UI/Detail/ArticleSummaryText.swift rssreader/
 The on-device model check is optional; omit `--real-model` to run the other
 checks. Model-dependent checks are skipped when Apple Intelligence is unavailable.
 
+## Karakeep
+
+In Settings > Karakeep, enter your server's base URL and an API key created in
+Karakeep Settings > API Keys, then select Save. The API key is stored in
+Keychain; the server URL is stored locally.
+
+Use Save to Karakeep in article actions (More Actions on iPhone) or an article's
+context menu to save its original URL and title. A dismissible toast shows saving
+progress, confirms new or existing bookmarks, and displays errors. Open in
+Karakeep opens the native app's main screen when installed, avoiding article
+deep links that lack back navigation. Otherwise, it opens the saved bookmark in
+your browser. The native app must be connected to the same Karakeep account.
+Saving does not change the article's read status. Disconnect removes the stored
+connection and API key.
+
 ## Make targets
 
 Run `make` or `make help` to list the available commands:
@@ -51,6 +66,7 @@ Run `make` or `make help` to list the available commands:
 | `make test-feed` | Run native feed-scrolling checks |
 | `make test-skipped` | Run skipped-item persistence checks |
 | `make test-summary` | Run article-summary checks without real-model generation |
+| `make test-karakeep` | Run Karakeep request and response checks |
 
 `make install` exits unsuccessfully if either installation fails.
 

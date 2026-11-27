@@ -35,6 +35,7 @@ struct SettingsView: View {
 				case read
 				case connection
 				case autoRefresh
+                case karakeep
 
 				static var defaultTab: SettingsTab {
 						allCases.first ?? .read
@@ -48,6 +49,8 @@ struct SettingsView: View {
 								return "Connection"
 						case .autoRefresh:
 								return "Auto Refresh"
+                        case .karakeep:
+                                return "Karakeep"
 						}
 				}
 
@@ -59,6 +62,8 @@ struct SettingsView: View {
 								return "FreshRSS account and diagnostics"
 						case .autoRefresh:
 								return "Background sync behavior"
+                        case .karakeep:
+                                return "Save articles to Karakeep"
 						}
 				}
 
@@ -70,6 +75,8 @@ struct SettingsView: View {
 								return "network"
 						case .autoRefresh:
 								return "arrow.triangle.2.circlepath"
+                        case .karakeep:
+                                return "bookmark"
 						}
 				}
 		}
@@ -181,6 +188,8 @@ struct SettingsView: View {
 						)
 				case .autoRefresh:
 						AutoRefreshSettingsTabView()
+                case .karakeep:
+                        KarakeepSettingsTabView(service: service.karakeep)
 				}
 		}
 #endif
@@ -210,6 +219,9 @@ struct SettingsView: View {
 						Tab("Auto Refresh", systemImage: "arrow.triangle.2.circlepath", value: SettingsTab.autoRefresh) {
 								AutoRefreshSettingsTabView()
 							}
+                        Tab("Karakeep", systemImage: "bookmark", value: SettingsTab.karakeep) {
+                                KarakeepSettingsTabView(service: service.karakeep)
+                            }
 				}
 		}
 

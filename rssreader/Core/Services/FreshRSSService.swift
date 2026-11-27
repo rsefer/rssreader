@@ -152,6 +152,7 @@ enum ThumbnailAspectRatio: String, CaseIterable, Identifiable {
 
 @MainActor
 final class FreshRSSService: ObservableObject {
+    let karakeep = KarakeepService()
 
     private struct TechmemeMetadata {
         let articleURL: URL?

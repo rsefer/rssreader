@@ -159,6 +159,7 @@ struct ContentView: View {
 
 	var body: some View {
 			platformNavigation
+                    .modifier(KarakeepSaveFeedback(service: service.karakeep))
 					.environment(\.itemNavigation, ItemNavigation(
 							selectPrevious: selectPrevious,
 							selectNext: selectNext,

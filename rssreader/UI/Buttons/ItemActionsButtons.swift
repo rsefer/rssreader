@@ -11,6 +11,7 @@ struct ItemActionsButtons: View {
 			.help("Open the article in your default browser (⌘↩ or ⌘⇧O)")
 		ShareLinkButton(item: item)
 		CopyLinkButton(item: item)
+        SaveToKarakeepButton(item: item, service: service.karakeep)
 		ToggleItemReadStatusButton(item: item)
 	}
 }

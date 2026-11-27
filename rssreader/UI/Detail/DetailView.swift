@@ -317,6 +317,7 @@ struct DetailView: View {
 						HStack(spacing: 8) {
 								TextField("https://example.com", text: $editableURLText)
 										.textFieldStyle(.roundedBorder)
+										.plainTextInput(isURL: true)
 										.focused($isURLFieldFocused)
 										.onSubmit {
 												applyURLChange()

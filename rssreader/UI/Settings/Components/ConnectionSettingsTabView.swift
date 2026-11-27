@@ -131,7 +131,7 @@ struct ConnectionSettingsTabView: View {
             TextField(serverURLPlaceholder, text: $url)
             .textContentType(.URL)
             .textFieldStyle(.roundedBorder)
-            .autocorrectionDisabled()
+            .plainTextInput(isURL: true)
         }
 
         settingsDivider
@@ -140,7 +140,7 @@ struct ConnectionSettingsTabView: View {
             TextField("", text: $username)
             .textContentType(.username)
                 .textFieldStyle(.roundedBorder)
-                .autocorrectionDisabled()
+                .plainTextInput()
         }
 
         settingsDivider
@@ -149,6 +149,7 @@ struct ConnectionSettingsTabView: View {
             SecureField("", text: $password)
             .textContentType(.password)
                 .textFieldStyle(.roundedBorder)
+                .plainTextInput()
         }
 
         settingsDivider

@@ -1,6 +1,16 @@
 import SwiftUI
 
 extension View {
+    /// For credentials, URLs, and other values the system should never "fix": no autocorrection
+    /// and no automatic capitalization. `isURL` also selects the URL keyboard on iOS.
+    func plainTextInput(isURL: Bool = false) -> some View {
+        autocorrectionDisabled()
+        #if os(iOS)
+        .textInputAutocapitalization(.never)
+        .keyboardType(isURL ? .URL : .default)
+        #endif
+    }
+
     @ViewBuilder
     func platformSettingsPresentation<Content: View>(
         horizontalSizeClass: UserInterfaceSizeClass?,

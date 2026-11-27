@@ -28,12 +28,12 @@ struct KarakeepSettingsTabView: View {
         LabeledContent("Server URL") {
             TextField("https://karakeep.example.com", text: $serverURL)
                 .textContentType(.URL)
-                .autocorrectionDisabled()
+                .plainTextInput(isURL: true)
                 .textFieldStyle(.roundedBorder)
         }
         LabeledContent("API Key") {
             SecureField("API Key", text: $apiKey)
-                .autocorrectionDisabled()
+                .plainTextInput()
                 .textFieldStyle(.roundedBorder)
         }
         Text("Create an API key in Karakeep Settings > API Keys. The key is stored in Keychain. Use your server's base URL, not its /api path.")

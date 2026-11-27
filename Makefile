@@ -6,7 +6,7 @@ SUMMARY_SOURCES := rssreader/UI/Detail/ArticleSummaryText.swift \
 	rssreader/Core/EmbeddedWebNavigationPolicy.swift \
 	tests/ArticleSummaryChecks.swift
 
-.PHONY: help dev install install-mac install-iphone install-simulator slim-simulator simulators devices build-mac build-ios check test test-feed test-skipped test-summary test-karakeep test-dev
+.PHONY: help dev install install-mac install-iphone install-simulator slim-simulator simulators devices build-mac build-ios check test test-unit test-ios test-feed test-summary test-dev
 
 help:
 	@printf '%s\n' \
@@ -21,11 +21,11 @@ help:
 		'make build-mac      Build Debug for macOS without signing or installing' \
 		'make build-ios      Build Debug for iOS Simulator without installing' \
 		'make check          Check shell syntax and patch whitespace' \
-		'make test           Run all standalone macOS checks' \
+		'make test           Run the unit tests and all standalone macOS checks' \
+		'make test-unit      Run the unit-test target on macOS' \
+		'make test-ios       Run the unit-test target in the configured simulator' \
 		'make test-feed      Run native feed-scrolling checks' \
-		'make test-skipped   Run skipped-item persistence checks' \
 		'make test-summary   Run article-summary checks without real-model generation' \
-		'make test-karakeep  Run Karakeep request and response checks' \
 		'make test-dev       Run simulator watcher checks'
 
 install:
@@ -72,22 +72,23 @@ check:
 	bash -n scripts/load_env.sh
 	git diff --check
 
-test: test-feed test-skipped test-summary test-karakeep test-dev
+test: test-unit test-feed test-summary test-dev
 
-test-dev:
-	python3 ./tests/DevSimulatorChecks.py
+test-unit:
+	xcodebuild test -project rssreader.xcodeproj -scheme rssreader -configuration Debug \
+		-destination 'platform=macOS' -derivedDataPath build/macos CODE_SIGNING_ALLOWED=NO
+
+test-ios:
+	@set -e; [ -f .env ] && . ./.env; \
+		test -n "$$SIMULATOR_ID" || { echo 'Set SIMULATOR_ID in .env (see make simulators)'; exit 1; }; \
+		xcodebuild test -project rssreader.xcodeproj -scheme rssreader -configuration Debug \
+			-destination "platform=iOS Simulator,id=$$SIMULATOR_ID" -derivedDataPath build/ios-simulator CODE_SIGNING_ALLOWED=NO
 
 test-feed: $(CHECKS_DIR)/feed-scroll-checks
 	./$(CHECKS_DIR)/feed-scroll-checks
 
-test-skipped: $(CHECKS_DIR)/skipped-items-checks
-	./$(CHECKS_DIR)/skipped-items-checks
-
 test-summary: $(CHECKS_DIR)/article-summary-checks
 	./$(CHECKS_DIR)/article-summary-checks
-
-test-karakeep: $(CHECKS_DIR)/karakeep-checks
-	./$(CHECKS_DIR)/karakeep-checks
 
 $(CHECKS_DIR):
 	mkdir -p "$@"
@@ -95,11 +96,5 @@ $(CHECKS_DIR):
 $(CHECKS_DIR)/feed-scroll-checks: rssreader/UI/Feed/FeedSkipTracking.swift tests/FeedScrollChecks.swift | $(CHECKS_DIR)
 	swiftc -parse-as-library $^ -o "$@"
 
-$(CHECKS_DIR)/skipped-items-checks: rssreader/Core/Models/SkippedItems.swift tests/SkippedItemsChecks.swift | $(CHECKS_DIR)
-	swiftc -parse-as-library $^ -o "$@"
-
 $(CHECKS_DIR)/article-summary-checks: $(SUMMARY_SOURCES) | $(CHECKS_DIR)
-	swiftc -parse-as-library $^ -o "$@"
-
-$(CHECKS_DIR)/karakeep-checks: rssreader/Core/Services/KarakeepClient.swift tests/KarakeepChecks.swift | $(CHECKS_DIR)
 	swiftc -parse-as-library $^ -o "$@"

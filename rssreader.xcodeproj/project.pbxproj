@@ -10,7 +10,18 @@
 		A3A26E622FAE182B000CE14E /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = A3A26E612FAE182B000CE14E /* Kingfisher */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		D0C0FFEE000000000000000B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A3A26E402FAE1777000CE14E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A3A26E472FAE1777000CE14E;
+			remoteInfo = rssreader;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		D0C0FFEE0000000000000001 /* rssreaderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rssreaderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3A26E482FAE1777000CE14E /* SDC RSS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SDC RSS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -20,9 +31,21 @@
 			path = rssreader;
 			sourceTree = "<group>";
 		};
+		D0C0FFEE0000000000000002 /* rssreaderTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = rssreaderTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		D0C0FFEE0000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3A26E452FAE1777000CE14E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -38,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				A3A26E4A2FAE1777000CE14E /* rssreader */,
+				D0C0FFEE0000000000000002 /* rssreaderTests */,
 				A3A26E492FAE1777000CE14E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				A3A26E482FAE1777000CE14E /* SDC RSS.app */,
+				D0C0FFEE0000000000000001 /* rssreaderTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +101,29 @@
 			productReference = A3A26E482FAE1777000CE14E /* SDC RSS.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D0C0FFEE0000000000000003 /* rssreaderTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0C0FFEE0000000000000007 /* Build configuration list for PBXNativeTarget "rssreaderTests" */;
+			buildPhases = (
+				D0C0FFEE0000000000000004 /* Sources */,
+				D0C0FFEE0000000000000005 /* Frameworks */,
+				D0C0FFEE0000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D0C0FFEE000000000000000A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D0C0FFEE0000000000000002 /* rssreaderTests */,
+			);
+			name = rssreaderTests;
+			packageProductDependencies = (
+			);
+			productName = rssreaderTests;
+			productReference = D0C0FFEE0000000000000001 /* rssreaderTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,6 +136,10 @@
 				TargetAttributes = {
 					A3A26E472FAE1777000CE14E = {
 						CreatedOnToolsVersion = 26.4.1;
+					};
+					D0C0FFEE0000000000000003 = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = A3A26E472FAE1777000CE14E;
 					};
 				};
 			};
@@ -109,11 +161,19 @@
 			projectRoot = "";
 			targets = (
 				A3A26E472FAE1777000CE14E /* rssreader */,
+				D0C0FFEE0000000000000003 /* rssreaderTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		D0C0FFEE0000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3A26E462FAE1777000CE14E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -131,7 +191,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D0C0FFEE0000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D0C0FFEE000000000000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A3A26E472FAE1777000CE14E /* rssreader */;
+			targetProxy = D0C0FFEE000000000000000B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A3A26E512FAE1777000CE14E /* Debug */ = {
@@ -370,6 +445,58 @@
 			};
 			name = Release;
 		};
+		D0C0FFEE0000000000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.seferdesign.rssreaderTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				"TEST_HOST[sdk=iphoneos*]" = "$(BUILT_PRODUCTS_DIR)/SDC RSS.app/SDC RSS";
+				"TEST_HOST[sdk=iphonesimulator*]" = "$(BUILT_PRODUCTS_DIR)/SDC RSS.app/SDC RSS";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/SDC RSS.app/Contents/MacOS/SDC RSS";
+			};
+			name = Debug;
+		};
+		D0C0FFEE0000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.seferdesign.rssreaderTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				"TEST_HOST[sdk=iphoneos*]" = "$(BUILT_PRODUCTS_DIR)/SDC RSS.app/SDC RSS";
+				"TEST_HOST[sdk=iphonesimulator*]" = "$(BUILT_PRODUCTS_DIR)/SDC RSS.app/SDC RSS";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/SDC RSS.app/Contents/MacOS/SDC RSS";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -387,6 +514,15 @@
 			buildConfigurations = (
 				A3A26E542FAE1777000CE14E /* Debug */,
 				A3A26E552FAE1777000CE14E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D0C0FFEE0000000000000007 /* Build configuration list for PBXNativeTarget "rssreaderTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0C0FFEE0000000000000008 /* Debug */,
+				D0C0FFEE0000000000000009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

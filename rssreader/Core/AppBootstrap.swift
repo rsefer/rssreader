@@ -7,8 +7,17 @@ enum AppBootstrap {
         URLCache.shared = URLCache(memoryCapacity: 24 * 1024 * 1024, diskCapacity: 0, diskPath: nil)
     }
 
+    /// True when the app is only a host process for the unit-test bundle.
+    static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
     static func makeService() -> FreshRSSService {
-        FreshRSSService()
+        if isRunningTests {
+            // An unsigned test host has no CloudKit or Keychain entitlements.
+            return FreshRSSService(store: .ephemeral(), passwordStore: InMemoryPasswordStore(), readStateSync: NoOpReadStateSync())
+        }
+        return FreshRSSService()
     }
 
     static func makePreviewService(itemCount: Int = 10) -> FreshRSSService {

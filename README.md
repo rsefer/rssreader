@@ -36,6 +36,24 @@ swiftc -parse-as-library rssreader/UI/Detail/ArticleSummaryText.swift rssreader/
 The on-device model check is optional; omit `--real-model` to run the other
 checks. Model-dependent checks are skipped when Apple Intelligence is unavailable.
 
+## Testing
+
+Unit tests live in `rssreaderTests` (Swift Testing, hosted by the app). They cover the
+FreshRSS client (against a fake transport), server-URL handling, feed parsing, the
+service's read/skip bookkeeping, skipped-item merging, and the Karakeep client.
+
+```sh
+make test-unit   # macOS
+make test-ios    # the simulator selected by SIMULATOR_ID in .env
+make test        # unit tests plus the standalone checks below
+```
+
+The tests never touch the network, Keychain, CloudKit, or your saved settings: the
+app swaps in inert services when launched as a test host.
+
+The feed-scrolling and article-summary checks below stay standalone because they open
+real windows or use the on-device model.
+
 ## Karakeep
 
 In Settings > Karakeep, enter your server's base URL and an API key created in

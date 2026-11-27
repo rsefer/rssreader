@@ -34,6 +34,37 @@ protocol ReadStateSyncing: AnyObject {
 
 extension CloudKitSyncService: ReadStateSyncing {}
 
+/// A password store that keeps the value in memory, for previews and tests. Set `loadError` or
+/// `saveError` to simulate Keychain failures.
+final class InMemoryPasswordStore: PasswordStoring {
+    var password: String?
+    var loadError: Error?
+    var saveError: Error?
+
+    init(password: String? = nil) {
+        self.password = password
+    }
+
+    func loadPassword(allowUserInteraction: Bool) throws -> String? {
+        if let loadError { throw loadError }
+        return password
+    }
+
+    func savePassword(_ password: String) throws {
+        if let saveError { throw saveError }
+        self.password = password
+    }
+}
+
+/// Behaves like an unavailable iCloud account: nothing syncs and local state stays queued.
+@MainActor
+final class NoOpReadStateSync: ReadStateSyncing {
+    func fetchSyncedReadIDs() async -> Set<String> { [] }
+    func pushReadIDs(_ ids: Set<String>) async {}
+    func clearSyncedReadIDs() async {}
+    func synchronizeSkippedItems(account: String, localIDs: Set<String>, changes: [String: Bool], isInitialSync: Bool) async -> Set<String>? { nil }
+}
+
 // MARK: - Store
 
 /// Typed access to the UserDefaults and iCloud key-value storage backing FreshRSS state.
@@ -64,6 +95,11 @@ struct FreshRSSStore {
 
     static var standard: FreshRSSStore {
         FreshRSSStore(defaults: .standard, cloud: .default)
+    }
+
+    /// Throwaway storage that never touches the user's defaults or iCloud.
+    static func ephemeral() -> FreshRSSStore {
+        FreshRSSStore(defaults: UserDefaults(suiteName: "rssreader-ephemeral-\(UUID().uuidString)") ?? .standard, cloud: nil)
     }
 
     // MARK: Connection settings (synced through iCloud)

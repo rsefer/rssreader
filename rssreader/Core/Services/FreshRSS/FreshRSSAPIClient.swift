@@ -207,10 +207,17 @@ nonisolated struct FreshRSSAPIClient: Sendable {
         return request
     }
 
-    private func formBody(_ items: [URLQueryItem]) -> Data? {
-        var components = URLComponents()
-        components.queryItems = items
-        return components.query?.data(using: .utf8)
+    /// `application/x-www-form-urlencoded` body. `URLComponents.query` returns the *decoded* string,
+    /// which would send `&`, `=`, `+`, and `%` in passwords unescaped, so encode each part explicitly.
+    func formBody(_ items: [URLQueryItem]) -> Data? {
+        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        func encode(_ value: String) -> String {
+            value.addingPercentEncoding(withAllowedCharacters: unreserved) ?? value
+        }
+        return items
+            .map { "\(encode($0.name))=\(encode($0.value ?? ""))" }
+            .joined(separator: "&")
+            .data(using: .utf8)
     }
 
     /// Sends a request, retrying transient failures with exponential backoff.

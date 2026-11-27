@@ -2,3 +2,5 @@ build
 .build
 .tmp*
 /.env
+xcuserdata/
+.DS_Store
